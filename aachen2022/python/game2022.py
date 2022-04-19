@@ -494,6 +494,10 @@ if __name__ == '__main__':
     sendBeacon()
     print("sendBeacon")
 
+    if (challenge == "testMPS" and challengeFlag):
+        goToOutputVelt()
+        challengeFlag = False
+
     if (challenge == "driving" and challengeFlag):
         print("startDriving for JapanOpen2020")
         targetZone =  ["S31", "S21", "S22", "S22", "S23", "S43", "S43", "S23", "S21", "S31"]
