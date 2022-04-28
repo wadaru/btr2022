@@ -92,10 +92,12 @@ def moveRobotino(x, y, theta):
     print("goToPoint")
 
 def goToInputVelt():
-    goToMPSCenter(355 + 10 - 10 + 30 - 10 -7)
+    goToMPSCenter(335 + 63)
+    # goToMPSCenter(355 + 13 + 70 + 5)
 
 def goToOutputVelt():
-    goToMPSCenter(321 - 20 + 20 + 10 -15)
+    goToMPSCenter(321 -15+50) #  - 20 + 20 + 10 -15)
+    # goToMPSCenter(321 + 70)
 
 def goToMPSCenter(distance):
     setDistance = SetDistance()
@@ -496,6 +498,9 @@ if __name__ == '__main__':
 
     if (challenge == "testMPS" and challengeFlag):
         goToOutputVelt()
+        # turnClockwise()
+        # goToInputVelt()
+        # turnCounterClockwise()
         challengeFlag = False
 
     if (challenge == "driving" and challengeFlag):
@@ -564,7 +569,7 @@ if __name__ == '__main__':
         startGrasping()
         challengeFlag = False
 
-    if (challenge == "steam" and challengeFlag):
+    if (challenge == "rcjj2022" and challengeFlag):
         startGrasping()
         challengeFlag = False
 
