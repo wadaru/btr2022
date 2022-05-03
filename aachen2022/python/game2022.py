@@ -91,13 +91,13 @@ def moveRobotino(x, y, theta):
     resp = setPosition(position.header, position.pose)
     print("goToPoint")
 
-def goToInputVelt():
-    goToMPSCenter(335 + 63)
-    # goToMPSCenter(355 + 13 + 70 + 5)
+def goToInputVelt(): # original position is 355 (= 5 + 50*7)
+    # goToMPSCenter(335 + 63) # for LRF
+    goToMPSCenter(355 + 58)
 
-def goToOutputVelt():
-    goToMPSCenter(321 -15+50) #  - 20 + 20 + 10 -15)
-    # goToMPSCenter(321 + 70)
+def goToOutputVelt(): # original position is 305 (= 5 + 50*6)
+    # goToMPSCenter(321 -15 +50 -5) # for LRF
+    goToMPSCenter(305 + 16 + 40)
 
 def goToMPSCenter(distance):
     setDistance = SetDistance()
@@ -497,10 +497,10 @@ if __name__ == '__main__':
     print("sendBeacon")
 
     if (challenge == "testMPS" and challengeFlag):
-        goToOutputVelt()
+        # goToOutputVelt()
         # turnClockwise()
         # goToInputVelt()
-        # turnCounterClockwise()
+        turnCounterClockwise()
         challengeFlag = False
 
     if (challenge == "driving" and challengeFlag):
