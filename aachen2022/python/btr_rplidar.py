@@ -3,6 +3,8 @@
 
 START_ANGLE = -180 # -90
 END_ANGLE = 0 # 90
+START_EDGE_ANGLE = -120
+END_EDGE_ANGLE = -60
 THRESHOLD_ANGLE = 20
 
 import rospy
@@ -63,7 +65,7 @@ def calcPoint():
   minAngle = (START_ANGLE + END_ANGLE) / 2
   centerPoint = polarToPoint(minDistance, minAngle)
 
-  for i in range(START_ANGLE, END_ANGLE):
+  for i in range(START_EDGE_ANGLE, END_EDGE_ANGLE):
     if (minDistance > scanDistance(i)):
       minDistance = scanDistance(i)
       minAngle = i

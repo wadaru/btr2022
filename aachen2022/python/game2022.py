@@ -15,6 +15,7 @@ import time
 import math
 import sys
 import rospy
+import robotino2022
 from geometry_msgs.msg import Pose, Pose2D, PoseStamped, Point, Quaternion
 from socket import socket, AF_INET, SOCK_DGRAM
 from std_msgs.msg import Int8, Int16, UInt32, String, \
@@ -301,15 +302,17 @@ def robotinoVelocity(data):
 def startGrasping():
     for j in range(3):
         print(j)
-        goToOutputVelt()
+        btrRobotino.goToOutputVelt()
         getWork()
+        btrRobotino.goToWall(20)
         #
         if (robotNum != 2):
             turnClockwise()
         else:
             turnCounterClockwise()
-        goToInputVelt()
+        btrRobotino.goToInputVelt()
         putWork()
+        btrRobotino.goToWall(20)
         print("a")
         if (robotNum != 2):
             turnCounterClockwise()
@@ -471,6 +474,8 @@ if __name__ == '__main__':
   machineReport = MachineReportEntryBTR()
   prepareMachine = SendPrepareMachine() 
 
+  btrRobotino = robotino2022.robotino2022()
+
   pose = Pose2D()
   pose.x = -1000 * robotNum - 1500
   pose.y = 500
@@ -497,10 +502,18 @@ if __name__ == '__main__':
     print("sendBeacon")
 
     if (challenge == "testMPS" and challengeFlag):
-        # goToOutputVelt()
-        # turnClockwise()
-        # goToInputVelt()
-        turnCounterClockwise()
+        if (True):
+            # btrRobotino.goToOutputVelt()
+            # getWork()
+            # btrRobotino.goToWall(20)
+            # turnClockwise()
+            # btrRobotino.goToInputVelt()
+            # putWork()
+            # btrRobotino.goToWall(20)
+            turnCounterClockwise()
+            btrRobotino.goToWall(50)
+        else:
+            startGrasping()
         challengeFlag = False
 
     if (challenge == "driving" and challengeFlag):

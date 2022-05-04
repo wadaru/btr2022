@@ -24,7 +24,10 @@ from rcll_btr_msgs.srv import SetOdometry, SetPosition, SetVelocity, \
 def tangent_angle(u, v):
     i = numpy.inner([u.y, u.x], [v.y, v.x])
     n = linalg.norm([u.y, u.x]) * linalg.norm([v.y, v.x])
-    c = i / n
+    if (n == 0 ):
+        return 90
+    else:
+        c = i / n
     return numpy.rad2deg(numpy.arccos(numpy.clip(c, -1.0, 1.0)))
 
 def MPS_angle(u, v):
@@ -109,35 +112,50 @@ class robotino2022(object):
         self.resp = self.setPosition(self.position.header, self.position.pose)
         print("goToPoint")
 
-    def goToInputVelt(self):
-        self.goToMPSCenter(335 + 63)    # 25 + 50*7 = 375
-        # goToMPSCenter(355 + 13 + 70 + 5)
+    def goToInputVelt(self):    # 375mm from left side(= 25 + 50*7)
+        self.goToMPSCenter()
+        self.move(0, 20, 0, 4)
+        self.goToWall(15)
 
-    def goToOutputVelt(self):
-        self.goToMPSCenter(325 + 50)  # 25 + 50*6 = 325
-        # goToMPSCenter(321 + 70)
+    def goToOutputVelt(self):   # 325mm from left side (= 25 + 50*6)
+        self.goToMPSCenter()
+        self.move(0, -20, 0, 1)
+        self.goToWall(15)
 
-    def goToMPSCenter(self, distance):
+    def move(self, x, y, theta, number):
+        v = Pose2D()
+        v.x = x
+        v.y = y
+        v.theta = theta
+        for i in range(number):
+            self.setVelocity(v)
+            # rospy.sleep(1)
+        v.x = v.y = v.theta = 0
+        self.setVelocity(v)
+
+    def goToMPSCenter(self):
         for i in range(2):
             # turn parallel for the face of MPS.
             self.parallelMPS()
             # goTo at the front of the MPS with 50cm.
             self.goToWall(50)
             # go to the front of the MPS.
-            self.goToMPSCenter1(distance)
-        self.goToWall(15)
+            self.goToMPSCenter1()
+        self.goToWall(17)
         self.parallelMPS()
 
-    def goToMPSCenter1(self, distance):
-        go_distance = numpy.array([-999, -50, -10, -1.1, -1, 1, 1.1,  10,  50, 999])
-        go_velocity = numpy.array([ -50, -50, -10,  -10,  0, 0,  10,  10,  50,  50])
+    def goToMPSCenter1(self):
+        go_distance = numpy.array([-999, -50, -20, -15, -10, 10, 15, 20,  50, 999])
+        go_velocity = numpy.array([ -50, -50,- 10, -10,   0,  0, 10, 10,  50,  50])
                 
         velocityY = interpolate.interp1d(go_distance, go_velocity)
         while True:
-            dist = distance + self.rightPoint.y * 1000
+            dist = self.leftPoint.y * 1000 + self.rightPoint.y * 1000
             v = Pose2D()
             v.x = 0
-            if (not(math.isnan(dist))):
+            if (math.isnan(dist) or math.isinf(dist)):
+                v.y = 0
+            else:
                 v.y = velocityY(dist)
             v.theta = 0
             print("MPSCenter:", dist, v.y)
@@ -149,13 +167,18 @@ class robotino2022(object):
                 break
 
     def goToWall(self, distance):
-        go_distance = numpy.array([-999, -20, -10,   -1, 0,   4,  5, 10,  20, 999])
-        go_velocity = numpy.array([ -50, -50, -50,  -15, 0,   0, 15, 50, 100, 100])
+        go_distance = numpy.array([-999, -20, -10,   -1, -0.9, 0,   1, 1.1, 5, 10,  20, 999])
+        go_velocity = numpy.array([ -50, -50, -50,  -15,    0, 0,   0,  15, 15, 50, 100, 100])
         velocityX = interpolate.interp1d(go_distance, go_velocity)
         while True:
             sensor = self.centerPoint.x * 100
             v = Pose2D()
-            if (not(math.isnan(sensor))):
+            if (math.isnan(sensor) or math.isinf(sensor)):
+                if (distance < 17):
+                    v.x = 0
+                else:
+                    v.x = -15
+            else:
                 v.x = velocityX(sensor - distance)
             v.y = 0
             v.theta = 0
@@ -169,8 +192,8 @@ class robotino2022(object):
 
 
     def parallelMPS(self):
-        turn_angle    = numpy.array([-999, -20, -15,  -5, -1, -0.2, 0.1,  1,  5,  15,  20, 999])
-        turn_velocity = numpy.array([  30,  30,  10,   3,  3,    0,   0, -3, -3, -10, -30, -30])
+        turn_angle    = numpy.array([-999, -20, -10,  -5, -2, -0.2, 0.1,  2,  5,  10,  20, 999])
+        turn_velocity = numpy.array([  30,  20,  10,   3,  3,    0,   0, -3, -3, -10, -20, -30])
         velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
 
         while True:
@@ -182,8 +205,11 @@ class robotino2022(object):
             v = Pose2D()
             v.x = 0
             v.y = 0
-            if (not(math.isnan(angle))):
+            if (math.isnan(angle)):
+                angle = 90
+            else:
                 v.theta = velocity1(angle - 90)  
+
             print("parallelMPS:", angle, v.theta)
             if ((-1 < v.theta) and (v.theta < 1)):
                 v.theta = 0
@@ -255,9 +281,9 @@ if __name__ == '__main__':
 
     if (challenge == "test" and challengeFlag):
         agent.run()
-        agent.goToOutputVelt()
-        # turnClockwise()
-        # goToInputVelt()
+        # agent.goToOutputVelt()
+        turnClockwise()
+        goToInputVelt()
         # turnCounterClockwise()
         challengeFlag = False
 
