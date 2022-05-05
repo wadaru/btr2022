@@ -158,6 +158,7 @@ def gameState(data):
     refboxPointsCyan = data.points_cyan
     refboxTeamCyan = data.team_cyan
     # print("GameState: ", data)
+    sendBeacon()
 
 def machineInfo(data):
     global refboxMachineInfo, refboxMachineInfoFlag
@@ -498,20 +499,23 @@ if __name__ == '__main__':
   challengeFlag = True
   # while True:
   while not rospy.is_shutdown():
-    sendBeacon()
-    print("sendBeacon")
+    # sendBeacon()
+    # print("sendBeacon")
+    
+    if (challenge == "test" and challengeFlag):
+        challengeFlag = False
 
     if (challenge == "testMPS" and challengeFlag):
         if (True):
-            # btrRobotino.goToOutputVelt()
+            btrRobotino.goToOutputVelt()
             # getWork()
             # btrRobotino.goToWall(20)
             # turnClockwise()
             # btrRobotino.goToInputVelt()
             # putWork()
             # btrRobotino.goToWall(20)
-            turnCounterClockwise()
-            btrRobotino.goToWall(50)
+            # turnCounterClockwise()
+            # btrRobotino.goToWall(50)
         else:
             startGrasping()
         challengeFlag = False
