@@ -74,7 +74,7 @@ def goToPoint(x, y, theta):
     pose.y = y
     pose.theta  = theta
     position.pose = pose
-    print("send")
+    # print("send")
     resp = setPosition(position.header, position.pose)
     print("goToPoint")
 
@@ -88,9 +88,9 @@ def moveRobotino(x, y, theta):
     pose.y = y
     pose.theta  = theta
     position.pose = pose
-    print("send")
+    # print("send")
     resp = setPosition(position.header, position.pose)
-    print("goToPoint")
+    print("move Robotino")
 
 def goToInputVelt(): # original position is 355 (= 5 + 50*7)
     # goToMPSCenter(335 + 63) # for LRF
@@ -314,7 +314,7 @@ def startGrasping():
         btrRobotino.goToInputVelt()
         putWork()
         btrRobotino.goToWall(20)
-        print("a")
+        print("turn")
         if (robotNum != 2):
             turnCounterClockwise()
         else:
@@ -332,10 +332,16 @@ def initField():
     #   (-5 ,1) => (0, 0)
 
 def setField(x, y, number):
+    global FIELDMINX, FIELDMINY
+    # print(x, FIELDMINX, y, FIELDMINX, number)
     btrField[y - FIELDMINY][x - FIELDMINX] = number
 
 def getField(x, y):
-    return btrField[y - FIELDMINY][x - FIELDMINX]
+    global FIELDMINX, FIELDMAXX, FIELDMINY, FIELDMAXY, MAXSTEP
+    if (int(x) < FIELDMINX or FIELDMAXX < int(x) or int(y) < FIELDMINY or FIELDMAXY < int(y)):
+        # print("getField range over: ", x, y)
+        return MAXSTEP 
+    return btrField[int(y) - FIELDMINY][int(x) - FIELDMINX]
 
 def zoneToPose2D(zone):
     point = Pose2D()
@@ -352,23 +358,56 @@ def setMPStoField():
     point = Pose2D()
     for machine in refboxMachineInfo.machines:
         point = zoneToPose2D(machine.zone)
-        print(machine.name, point.x, point.y)
-        setField(point.x, point.y, MAXSTEP)
+        print("setMPS: ", machine.name, machine.zone, point.x, point.y)
+        if (point.x == 0 and point.y == 0):
+            print("received NULL data for MPS", machine.name)
+        else:
+            setField(point.x, point.y, MAXSTEP)
 
 def getStep(x, y):
+    global FIELDMINX, FIELDMAXX, FIELDMINY, FIELDMAXY, MAXSTEP
     if ((x < FIELDMINX or FIELDMAXX < x) or (y < FIELDMINY or FIELDMAXY < y)):
-        return 999
+        return MAXSTEP
 
     step = getField(x, y)
     if (step == 0):
         step = MAXSTEP
     return step
 
+def wallCheck(x, y, dx, dy):
+    notWallFlag = True
+    if ((x == -5 and y == 1) and (dx ==  0 and dy ==  1)):
+        notWallFlag = False
+    if ((x == -4 and y == 1) and (dx ==  0 and dy ==  1)):
+        notWallFlag = False
+    if ((x == -3 and y == 1) and (dx ==  1 and dy ==  0)):
+        notWallFlag = False
+    if ((x == -2 and y == 1) and (dx == -1 and dy ==  0)):
+        notWallFlag = False
+    if ((x == -5 and y == 2) and (dx ==  0 and dy == -1)):
+        notWallFlag = False
+    if ((x == -4 and y == 2) and (dx ==  0 and dy == -1)):
+        notWallFlag = False
+    return notWallFlag
+
+def getNextDirection(x, y):
+    minStep = getField(x, y)
+    nextD = Pose2D()
+    nextD.x = nextD.y = 0
+    for dx, dy in zip([-1, 1, 0, 0], [0, 0, -1, 1]):
+        notWallFlag = wallCheck(x, y, dx, dy)
+
+        if ((minStep > getField(x + dx, y + dy)) and notWallFlag):
+            minStep = getField(x + dx, y + dy)
+            nextD.x = dx
+            nextD.y = dy
+    return nextD
+
 def makeNextPoint(destination):
-    global btrField, btrOdometry
+    global btrField, btrOdometry, FIELDMINX, FIELDMAXX, FIELDMINY, FIELDMAXY, MAXSTEP
     tmpField = btrField
     point = zoneToPose2D(destination)
-    print(destination, point.x, point.y)
+    print("destination is ", destination, point.x, point.y)
     setField(point.x, point.y, 1)
     for i in range(FIELDSIZE):
         for x in range(FIELDMINX, FIELDMAXX + 1):
@@ -379,38 +418,127 @@ def makeNextPoint(destination):
                     setField(x, y, min(getStep(x - 1, y), getStep(x, y - 1), \
                                        getStep(x + 1, y), getStep(x, y + 1)) \
                                    + 1)
+                    # wall information
+                    if (x == -5 and y == 1): # M_Z51 = M_Z41 + 1
+                        setField(x, y, getStep(x + 1, y) + 1)
+                    if (x == -4 and y == 1): # M_Z41 = M_Z31 + 1
+                        setField(x, y, getStep(x + 1, y) + 1)
+                    if (x == -3 and y == 1): # M_Z31 = M_Z32 + 1
+                        setField(x, y, getStep(x, y + 1) + 1)
+                    if (x == -2 and y == 1): # M_Z21 <= min(M_Z22, MZ_11) + 1
+                        setField(x, y, min(getStep(x, y + 1), getStep(x + 1, y)) + 1)
 
     # get optimized route
-    for y in range(FIELDMAXY, FIELDMINY  - 1, -1):
-        for x in range(FIELDMINX, FIELDMAXX + 1):
-            if (getField(x,y) == MAXSTEP):
-                print "*",
+    if (False):
+        for y in range(FIELDMAXY, FIELDMINY  - 1, -1):
+            for x in range(FIELDMINX, FIELDMAXX + 1):
+                if (getField(x,y) == MAXSTEP):
+                    print "*",
+                else:
+                    print getField(x, y), 
+            print()
+
+    robotReal = Pose2D()
+    robotZone = Pose2D()
+    point = Pose2D()
+    robotReal.x = btrOdometry.pose.pose.position.x
+    robotReal.y = btrOdometry.pose.pose.position.y
+
+    if (robotReal.x > 0):
+        robotZone.x = int((robotReal.x) / 1000) + 1
+    else:
+        robotZone.x = int((robotReal.x) / 1000) - 1
+    robotZone.y = int((robotReal.y) / 1000) + 1
+
+    x = int(robotZone.x)
+    y = int(robotZone.y)
+    # which direction?
+    nextD = getNextDirection(x, y)
+    # where is the turning point?
+    point.x = robotZone.x + nextD.x
+    point.y = robotZone.y + nextD.y
+    # print("direction: ",nextD.x, nextD.y)
+    for dx, dy, phi in zip([ 1, 0, -1, 0, 0], [0, 1, 0, -1, 0], [0, 90, 180, -90, 360]):
+        if (nextD.x == dx and nextD.y == dy):
+            theta = phi
+
+    goToPoint(robotReal.x, robotReal.y, theta) # turn for the next point.
+
+    while True:
+        # print(point)
+        if getField(point.x, point.y) == 0:
+            print("Next Point is goal")
+            break
+        if (getField(point.x + nextD.x, point.y + nextD.y) == getField(point.x, point.y) - 1):
+            notWallFlag = wallCheck(point.x, point.y, nextD.x, nextD.y)
+            if (notWallFlag):
+                point.x = point.x + nextD.x
+                point.y = point.y + nextD.y
             else:
-                print getField(x, y), 
-        print()
-    #
+                # there is a wall.
+                break
+        else:
+            print("Next Point is the turning point")
+            break
 
-    robot = Pose2D()
-    robot.x = btrOdometry.pose.pose.position.x
-    robot.y = btrOdometry.pose.pose.position.y
+    # for the nextStep
+    nextDD = getNextDirection(point.x, point.y)
+    theta = -360
+    for dx, dy, phi in zip([ 1, 0, -1, 0, 0], [0, 1, 0, -1, 0], [0, 90, 180, -90, 360]): 
+        if (nextDD.x == dx and nextDD.y == dy):
+           theta = phi
 
-    print(robot)
+    print("nextPosition: ", point.x, point.y, theta)
+    if (point.x == robotZone.x and point.y == robotZone.y):
+        theta = 360
+    point.theta = theta
+    return point
 
-
-def getNextPoint():
+def getNextPoint(pointNumber):
     point = Pose2D()
     route = refboxNavigationRoutes.route
+    # zone = route[pointNumber].zone
     zone = route[0].zone
 
     print(zone)
-    makeNextPoint(zone)
-
+    point = makeNextPoint(zone)
+    return point
 
 def startNavigation():
     global btrField
     initField()
+    print("----")
     setMPStoField()
-    getNextPoint()
+    print("====")
+    oldTheta = 90
+    for pointNumber in range(12):
+        print(pointNumber)
+        route = refboxNavigationRoutes.route
+        if (len(route) == 0):
+            print("finished")
+        else:
+            point = getNextPoint(pointNumber)
+            robot = btrOdometry.pose.pose.position
+            while True:
+                point = getNextPoint(pointNumber)
+                if (point.x > 0):
+                    point.x = point.x * 1000 - 500
+                else:
+                    point.x = point.x * 1000 + 500
+                point.y = point.y * 1000 - 500
+                if (point.theta == 360):
+                    goToPoint(point.x, point.y, oldTheta)
+                    break
+                else:
+                    goToPoint(point.x, point.y, point.theta)
+                oldTheta = point.theta
+
+            print("arrived #", pointNumber + 1, ": point")
+            for i in range(4):
+                sendBeacon()
+                rospy.sleep(2)
+
+    print("****")
     # print(refboxNavigationRoutes)
     # print(refboxMachineInfo)
 
@@ -493,6 +621,10 @@ if __name__ == '__main__':
       pose.y = zoneY["S31"]
       pose.theta = 90
   print(pose.x, pose.y, pose.theta)
+  if (challenge == "reset"):
+      # goToPoint(-800, -1500, 90)
+      goToPoint(pose.x, pose.y, pose.theta)
+      exit()
   setOdometry(pose)
 
   print(challenge)
@@ -606,7 +738,7 @@ if __name__ == '__main__':
             sendMachineReport(machineReport)
 
     # send machine prepare command
-    if (refboxGamePhase == 30):
+    if (refboxGamePhase == 30 and challenge == "" ):
         # make C0
         # which requires get base with cap from shelf at C-CS1, 
         #                Retrieve cap at C-CS1,

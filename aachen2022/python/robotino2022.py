@@ -52,12 +52,12 @@ class robotino2022(object):
         self.sub5 = rospy.Subscriber("/btr/rightPoint", Point, self.rightPoint)
         self.rate = rospy.Rate(10)
 
-        self.pose = Pose2D()
-        self.pose.x = -2500
-        self.pose.y = 500
-        self.pose.theta = 90
-        print("init", self.pose.x, self.pose.y, self.pose.theta)
-        self.setOdometry(self.pose)
+        # self.pose = Pose2D()
+        # self.pose.x = -2500
+        # self.pose.y = 500
+        # self.pose.theta = 90
+        # print("init", self.pose.x, self.pose.y, self.pose.theta)
+        # self.setOdometry(self.pose)
         
     def run(self):
         print("run")
