@@ -16,7 +16,7 @@ import math
 import sys
 import rospy
 import robotino2022
-from geometry_msgs.msg import Pose, Pose2D, PoseStamped, Point, Quaternion
+from geometry_msgs.msg import Pose, Pose2D, PoseStamped, PointStamped, Point, Quaternion
 from socket import socket, AF_INET, SOCK_DGRAM
 from std_msgs.msg import Int8, Int16, UInt32, String, \
                          Float32, Float32MultiArray, \
@@ -63,6 +63,16 @@ def setOdometry(data):
     pose = data
     odometry.pose = pose
     resp = setOdometry(odometry.header, odometry.pose)
+
+def setVelocity(data):
+    velocity = SetVelocity()
+    pose = Pose2D()
+    rospy.wait_for_service('/rvw2/setVelocity')
+    setVelocity = rospy.ServiceProxy('/rvw2/setVelocity', SetVelocity)
+    velocity.header = Header()
+    pose = data
+    velocity.pose = pose
+    resp = setVelocity(velocity.header, velocity.pose)
 
 def goToPoint(x, y, theta):
     position = SetPosition()
@@ -193,43 +203,58 @@ def navigationRoutes(data):
 def sendBeacon():
     global btrOdometry
     beacon = SendBeaconSignal()
-    header1 = Header()
-    header2 = Header()
-    poseStamped = PoseStamped()
-    pose = Pose()
+    beacon.header = Header()
+
+    # for pointStamped()
+    '''
+    beacon.point = PointStamped()
     
     # pose.position = point
     # set Pose
-    pose.position.x = btrOdometry.pose.pose.position.x
-    pose.position.y = btrOdometry.pose.pose.position.y
-    pose.position.z = 0
+    beacon.point.point.x = btrOdometry.pose.pose.position.x
+    beacon.point.point.y = btrOdometry.pose.pose.position.y
+    beacon.point.point.z = math.asin(btrOdometry.pose.pose.orientation.x) # x = math.cos(theta / 2.0), y = math.sin(theta / 2.0)
+    if (btrOdometry.pose.pose.orientation.y < 0):
+      beacon.point.point.z = -beacon.point.point.z
+    print("odometry: ", beacon.point)
     # set quaternion
     # theta = math.radians(float(udp.view3Recv[4]) / 10)
-    pose.orientation.x = btrOdometry.pose.pose.orientation.x # math.cos(theta / 2.0)
-    pose.orientation.y = btrOdometry.pose.pose.orientation.y # math.sin(theta / 2.0)
-    pose.orientation.z = btrOdometry.pose.pose.orientation.z # math.sin(theta / 2.0)
-    pose.orientation.w = btrOdometry.pose.pose.orientation.w # 0
-    pose = btrOdometry.pose.pose
-    header1.seq = 1
-    header1.stamp = rospy.Time.now()
-    header1.frame_id = TEAMNAME
-    header2.seq = 1
-    header2.stamp = rospy.Time.now()
-    header2.frame_id = "robot1"
-    poseStamped.header = header2
-    poseStamped.pose = pose
-    beacon.header = header1
-    beacon.pose  = poseStamped
+    beacon.header.seq = 1
+    beacon.header.stamp = rospy.Time.now()
+    beacon.header.frame_id = TEAMNAME
+    beacon.point.header.seq = 1
+    beacon.point.header.stamp = rospy.Time.now()
+    beacon.point.header.frame_id = "robot1"
+    # poseStamped.pose = pose
+    '''
+
+    # for poseStamped()
+    beacon.pose = PoseStamped()
+    beacon.pose.pose.position.x = btrOdometry.pose.pose.position.x
+    beacon.pose.pose.position.y = btrOdometry.pose.pose.position.y
+    beacon.pose.pose.position.z = 0
+    beacon.pose.pose.orientation.x = btrOdometry.pose.pose.orientation.x
+    beacon.pose.pose.orientation.y = btrOdometry.pose.pose.orientation.y
+    beacon.pose.pose.orientation.z = btrOdometry.pose.pose.orientation.z
+    beacon.pose.pose.orientation.w = btrOdometry.pose.pose.orientation.w
+    beacon.header.seq = 1
+    beacon.header.stamp = rospy.Time.now()
+    beacon.header.frame_id = TEAMNAME
+    beacon.pose.header.seq = 1
+    beacon.pose.header.stamp = rospy.Time.now()
+    beacon.pose.header.frame_id = "robot1"
 
     rospy.wait_for_service('/rcll/send_beacon')
     try:
+        # print("/rcll/send_beacon")
         refboxSendBeacon = rospy.ServiceProxy('/rcll/send_beacon', SendBeaconSignal)
+        # print("sendBeacon: ", beacon.header, beacon.pose)
         resp1 = refboxSendBeacon(beacon.header, beacon.pose)
         # print("sendBeacon: ", beacon.header, beacon.pose)
         # print("resp: ", resp1)
         return resp1
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
 
 def sendMachineReport(report):
     sendReport = SendMachineReport()
@@ -252,8 +277,8 @@ def sendMachineReport(report):
         resp1 = refboxMachineReport(sendReport.team_color, sendReport.machines)
         # print("resp: ", resp1)
         return resp1
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
 
 def sendPrepareMachine(data):
     prepare = SendPrepareMachine()
@@ -282,8 +307,8 @@ def sendPrepareMachine(data):
         refboxPrepareMachine = rospy.ServiceProxy('/rcll/send_prepare_machine', SendPrepareMachine)
         resp1 = refboxPrepareMachine(prepare.machine, prepare.wait, prepare.bs_side, prepare.bs_base_color, prepare.ds_order_id, prepare.rs_ring_color, prepare.cs_operation)
         return resp1
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
 
 def robotinoOdometry(data):
     global btrOdometry, btrBeaconCounter
@@ -433,9 +458,9 @@ def makeNextPoint(destination):
         for y in range(FIELDMAXY, FIELDMINY  - 1, -1):
             for x in range(FIELDMINX, FIELDMAXX + 1):
                 if (getField(x,y) == MAXSTEP):
-                    print "*",
+                    print("*",)
                 else:
-                    print getField(x, y), 
+                    print(getField(x, y),)
             print()
 
     robotReal = Pose2D()
@@ -635,7 +660,18 @@ if __name__ == '__main__':
     # print("sendBeacon")
     
     if (challenge == "test" and challengeFlag):
+        velocity = Pose2D()
+        velocity.x = 0
+        velocity.y = 0
+        velocity.theta = 10
+        setVelocity(velocity)
         challengeFlag = False
+        rospy.sleep(1)
+        velocity.theta = -10
+        setVelocity(velocity)
+        rospy.sleep(1)
+        velocity.theta = 0
+        setVelocity(velocity)
 
     if (challenge == "testMPS" and challengeFlag):
         if (True):
