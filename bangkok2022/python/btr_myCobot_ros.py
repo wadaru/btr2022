@@ -17,7 +17,7 @@ def release_Arm(data):
     return EmptyResponse()
 
 if __name__ == '__main__':
-    rospy.init_node("BTR_myCobot-ros")
+    rospy.init_node("BTR_myCobot_ros")
     src00 = rospy.Service('/btr/move_g',Empty,grab_Arm)
     src01 = rospy.Service('/btr/move_r',Empty,release_Arm)
 

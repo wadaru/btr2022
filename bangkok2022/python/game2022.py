@@ -205,8 +205,8 @@ def sendBeacon():
     beacon = SendBeaconSignal()
     beacon.header = Header()
 
-    # for pointStamped()
     '''
+    # for pointStamped()
     beacon.point = PointStamped()
     
     # pose.position = point
@@ -227,7 +227,6 @@ def sendBeacon():
     beacon.point.header.frame_id = "robot1"
     # poseStamped.pose = pose
     '''
-
     # for poseStamped()
     beacon.pose = PoseStamped()
     beacon.pose.pose.position.x = btrOdometry.pose.pose.position.x
@@ -250,6 +249,7 @@ def sendBeacon():
         refboxSendBeacon = rospy.ServiceProxy('/rcll/send_beacon', SendBeaconSignal)
         # print("sendBeacon: ", beacon.header, beacon.pose)
         resp1 = refboxSendBeacon(beacon.header, beacon.pose)
+        # resp1 = refboxSendBeacon(beacon.header, beacon.point)
         # print("sendBeacon: ", beacon.header, beacon.pose)
         # print("resp: ", resp1)
         return resp1
@@ -672,6 +672,7 @@ if __name__ == '__main__':
         rospy.sleep(1)
         velocity.theta = 0
         setVelocity(velocity)
+        break
 
     if (challenge == "testMPS" and challengeFlag):
         if (True):
