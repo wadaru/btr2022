@@ -5,18 +5,25 @@ import time
 import rospy
 import rosservice
 from std_srvs.srv import Empty, EmptyResponse
-from rcll_btr_msgs.msg import Corners, TagInfoResponse
-from rcll_btr_msgs.srv import TagInfo
+from rcll_btr_msgs.msg import Corners, TagInfoResponse, PictureInfoResponse
+from rcll_btr_msgs.srv import TagInfo, PictureInfo
 
 def initAruco():
-    global cap, dict_aruco, parameters
-    cap = cv2.VideoCapture(0)
+    global dict_aruco, parameters
+    # cap = cv2.VideoCapture(0)
     dict_aruco = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
     parameters = aruco.DetectorParameters_create()
 
 def getAruco(data):
     global cap, dict_aruco, parameters
-    ret, frame = cap.read()
+    pictureInfo = PictureInfo()
+    rospy.wait_for_service('/btr_camera/picture')
+    videoCapture = rospy.ServiceProxy('/btr_camera/picture', PictureInfo)
+    picture = videoCapture()
+    print(picture.filename.data)
+    
+    frame = cv2.imread(picture.filename.data)
+    # ret, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     tagInfo = TagInfoResponse()
 
