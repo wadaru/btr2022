@@ -28,9 +28,10 @@ def getAruco(data):
     tagInfo = TagInfoResponse()
 
     corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, dict_aruco, parameters=parameters)
-    print(ids,corners)
+    # print(ids,corners)
 
-    if (len(ids) == 0):
+    # if (len(ids) == 0):
+    if ids is None:
         tagInfo.tag_id.data = 0
         tagInfo.ok = False
     else:
@@ -41,14 +42,20 @@ def getAruco(data):
         tagInfo.BottomLeft.x,  tagInfo.BottomLeft.y  = corners[0][0][3][0], corners[0][0][3][1]
         tagInfo.ok = True
 
+    # print(tagInfo)
+    return tagInfo
+
+def tagLocation(data):
+    tagInfo = getAruco(data)
+
     print(tagInfo)
     return tagInfo
 
 if __name__ == "__main__":
     initAruco()
     rospy.init_node('btr_aruco')
-    arucoFlag = False
     srv01 = rospy.Service('btr_aruco/TagInfo', TagInfo, getAruco)
+    srv02 = rospy.Service('btr_aruco/TagLocation', TagInfo, tagLocation)
     rate = rospy.Rate(10)
 
     while not rospy.is_shutdown():

@@ -26,6 +26,7 @@ $TERM "sleep 1; cd $SCRIPT_DIR; bash -c ./robview2.sh; bash" &
 $TERM "sleep 3; cd $PYTHON_DIR; python  ./robotino.py robotino2 9180 10.42.0.1 9182; bash" &
 $TERM "sleep 1; cd $CATKIN_DIR; roslaunch rplidar.launch; bash" &
 $TERM "sleep 2; cd $PYTHON_DIR; bash -c ./btr_rplidar.py; bash" &
-$TERM "sleep 2; cd $PYTHON_DIR; python  ./aruco.py; bash" &
+$TERM "sleep 1; cd $PYTHON_DIR; python ./btr_camera.py; bash" &
+$TERM "sleep 2; cd $PYTHON_DIR; python  ./btr_aruco.py; bash" &
 $TERM "sleep 2; cd $PYTHON_DIR; bash -c ./btr_myCobot_ros.py; bash" &
 

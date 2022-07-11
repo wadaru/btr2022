@@ -17,9 +17,10 @@ from std_msgs.msg import Int8, Int16, UInt32, String, \
 from std_srvs.srv import SetBool, SetBoolResponse, Empty, EmptyResponse
 from nav_msgs.msg import Odometry
 import rcll_ros_msgs
-import rcll_btr_msgs
+# import rcll_btr_msgs
+from rcll_btr_msgs.msg import TagInfoResponse
 from rcll_btr_msgs.srv import SetOdometry, SetPosition, SetVelocity, \
-                              SetDistance
+                              SetDistance, TagInfo
 
 def tangent_angle(u, v):
     i = numpy.inner([u.y, u.x], [v.y, v.x])
@@ -134,15 +135,25 @@ class robotino2022(object):
         self.setVelocity(v)
 
     def goToMPSCenter(self):
-        for i in range(2):
-            # turn parallel for the face of MPS.
+        version = 2 
+        if (version == 1):
+            for i in range(2):
+                # turn parallel for the face of MPS.
+                self.parallelMPS()
+                # goTo at the front of the MPS with 50cm.
+                self.goToWall(50)
+                # go to the front of the MPS.
+                self.goToMPSCenter1()
+            self.goToWall(17)
             self.parallelMPS()
-            # goTo at the front of the MPS with 50cm.
-            self.goToWall(50)
-            # go to the front of the MPS.
-            self.goToMPSCenter1()
-        self.goToWall(17)
-        self.parallelMPS()
+        elif (version == 2):
+            rospy.wait_for_service('/btr_aruco/TagInfo')
+            tagInfo = rospy.ServiceProxy('/btr_aruco/TagInfo', TagInfo)
+            tag = tagInfo()
+            print(tag)
+            if (tag.ok == True):
+
+
 
     def goToMPSCenter1(self):
         go_distance = numpy.array([-999, -50, -20, -15, -10, 10, 15, 20,  50, 999])
