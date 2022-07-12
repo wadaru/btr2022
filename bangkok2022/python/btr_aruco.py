@@ -2,16 +2,18 @@ import cv2
 from cv2 import aruco
 import numpy as np
 import time
+import math
 import rospy
 import rosservice
 from std_srvs.srv import Empty, EmptyResponse
-from rcll_btr_msgs.msg import Corners, TagInfoResponse, PictureInfoResponse
-from rcll_btr_msgs.srv import TagInfo, PictureInfo
+from rcll_btr_msgs.msg import Corners, TagInfoResponse, PictureInfoResponse, TagLocationResponse
+from rcll_btr_msgs.srv import TagInfo, PictureInfo, TagLocation
 
 def initAruco():
     global dict_aruco, parameters
     # cap = cv2.VideoCapture(0)
     dict_aruco = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL)
+    dict_aruco = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
     parameters = aruco.DetectorParameters_create()
 
 def getAruco(data):
@@ -24,10 +26,13 @@ def getAruco(data):
     
     frame = cv2.imread(picture.filename.data)
     # ret, frame = cap.read()
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    # gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    gray = frame
     tagInfo = TagInfoResponse()
 
     corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, dict_aruco, parameters=parameters)
+    aruco.drawDetectedMarkers(gray, corners, ids, (0,255,255))
+    cv2.imwrite("./test.jpg", gray)
     # print(ids,corners)
 
     # if (len(ids) == 0):
@@ -46,16 +51,43 @@ def getAruco(data):
     return tagInfo
 
 def tagLocation(data):
+    tagLocation = TagLocationResponse()
     tagInfo = getAruco(data)
 
-    print(tagInfo)
-    return tagInfo
+    marker_length = 0.13
+
+    centerX = (tagInfo.UpLeft.x + tagInfo.UpRight.x + tagInfo.BottomRight.x + tagInfo.BottomLeft.x) / 4
+    centerY = (tagInfo.UpLeft.y + tagInfo.UpRight.y + tagInfo.BottomRight.y + tagInfo.BottomLeft.y) / 4
+
+    pictureWidth = 2304
+    pictureHeight = 1536
+
+    pictureMoveX = pictureWidth / 2 - centerX
+    pictureMoveY = pictureHeight / 2 - centerY
+
+    # =(sqrt((B32-B30)^2+(B33-B31)^2)+sqrt((B34-B36)^2+(B35-B37)^2))/2
+    tagSizeX = (math.sqrt((tagInfo.UpRight.x - tagInfo.UpLeft.x) ** 2 + (tagInfo.UpRight.y - tagInfo.UpLeft.y) ** 2) + math.sqrt((tagInfo.BottomRight.x - tagInfo.BottomLeft.x) ** 2 + (tagInfo.BottomRight.y - tagInfo.BottomLeft.y) ** 2)) / 2
+    tagSizeY = (math.sqrt((tagInfo.BottomLeft.x - tagInfo.UpLeft.x) ** 2 + (tagInfo.BottomLeft.y - tagInfo.UpLeft.y) ** 2) + math.sqrt((tagInfo.BottomRight.x - tagInfo.UpRight.x) ** 2 + (tagInfo.BottomRight.y - tagInfo.UpRight.y) ** 2)) / 2
+
+    # print("tagSize: ", tagSizeX, tagSizeY)
+    if (tagSizeY == 0):
+        distanceX = distanceY = 0
+    else:
+        distanceX = 7.66 * math.exp(-0.0119 * tagSizeY)
+        distanceY = marker_length * pictureMoveY / tagSizeY
+    
+    # print("distance: ", distanceX, distanceY)
+    # print(tagLocation)
+    tagLocation.tag_location.x = distanceX
+    tagLocation.tag_location.y = distanceY
+    tagLocation.tag_id.data = tagInfo.tag_id.data
+    return tagLocation
 
 if __name__ == "__main__":
     initAruco()
     rospy.init_node('btr_aruco')
     srv01 = rospy.Service('btr_aruco/TagInfo', TagInfo, getAruco)
-    srv02 = rospy.Service('btr_aruco/TagLocation', TagInfo, tagLocation)
+    srv02 = rospy.Service('btr_aruco/TagLocation', TagLocation, tagLocation)
     rate = rospy.Rate(10)
 
     while not rospy.is_shutdown():

@@ -120,8 +120,8 @@ class robotino2022(object):
 
     def goToOutputVelt(self):   # 325mm from left side (= 25 + 50*6)
         self.goToMPSCenter()
-        self.move(0, -20, 0, 1)
-        self.goToWall(15)
+        # self.move(0, -20, 0, 1)
+        # self.goToWall(15)
 
     def move(self, x, y, theta, number):
         v = Pose2D()
@@ -152,7 +152,12 @@ class robotino2022(object):
             tag = tagInfo()
             print(tag)
             if (tag.ok == True):
-
+                # at first robotino turns and faces to MPS.
+                # image size is 2304x1536
+                centerX = (tag.UpLeft.x + tag.UpRight.x + tag.BottomRight.x + tag.BottomLeft.x) / 4
+                centerY = (tag.Upleft.y + tag.UpRight.y + tag.BottomRight.y + tag.BottomLeft.y) / 4
+                diffX = 2305 - centerX
+                print(diffX)
 
 
     def goToMPSCenter1(self):
