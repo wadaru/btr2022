@@ -660,17 +660,32 @@ if __name__ == '__main__':
     # print("sendBeacon")
     
     if (challenge == "test" and challengeFlag):
+        challengeFlag = False
+        btrRobotino.robotinoTurn(10)
+
+    if (challenge == "testTurn" and challengeFlag):
+        pose.x = 0
+        pose.y = 0
+        print("setOometry")
+        setOdometry(pose)
         velocity = Pose2D()
         velocity.x = 0
         velocity.y = 0
         velocity.theta = 10
+        print("setVelocity-1")
         setVelocity(velocity)
         challengeFlag = False
         rospy.sleep(1)
         velocity.theta = -10
+        print("setVelocity-2")
+        setVelocity(velocity)
+        rospy.sleep(1)
+        velocity.theta = 10
+        print("setVelocity-3")
         setVelocity(velocity)
         rospy.sleep(1)
         velocity.theta = 0
+        print("setVelocity-end")
         setVelocity(velocity)
         break
 

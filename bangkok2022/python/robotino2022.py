@@ -18,9 +18,18 @@ from std_srvs.srv import SetBool, SetBoolResponse, Empty, EmptyResponse
 from nav_msgs.msg import Odometry
 import rcll_ros_msgs
 # import rcll_btr_msgs
-from rcll_btr_msgs.msg import TagInfoResponse
+from rcll_btr_msgs.msg import TagInfoResponse, TagLocationResponse
 from rcll_btr_msgs.srv import SetOdometry, SetPosition, SetVelocity, \
-                              SetDistance, TagInfo
+                              SetDistance, TagInfo,     TagLocation
+
+turn_angle    = numpy.array([-999, -20, -10,  -5, -2, -0.2, 0.1,  2,  5,  10,  20, 999])
+turn_velocity = numpy.array([  30,  20,  10,   3,  3,    0,   0, -3, -3, -10, -20, -30])
+
+go_distance = numpy.array([-999, -50, -20, -15, -10, 10, 15, 20,  50, 999])
+go_velocity = numpy.array([ -50, -50,- 10, -10,   0,  0, 10, 10,  50,  50])
+
+go_distance_fast = numpy.array([-999, -20, -10,   -1, -0.9, 0,   1, 1.1, 5, 10,  20, 999])
+go_velocity_fast = numpy.array([ -50, -50, -50,  -15,    0, 0,   0,  15, 15, 50, 100, 100])
 
 def tangent_angle(u, v):
     i = numpy.inner([u.y, u.x], [v.y, v.x])
@@ -134,7 +143,39 @@ class robotino2022(object):
         v.x = v.y = v.theta = 0
         self.setVelocity(v)
 
+    def robotinoTurn(self, turnAngle):
+        global turn_angle, turn_velocity
+        velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
+
+        while True:
+            nowAngle = self.btrOdometry
+            print(nowAngle)
+            if (nowAngle.header.seq != 0):
+                break
+
+        targetAngle = nowAngle.pose.pose.position.z + turnAngle
+
+        v = Pose2D()
+        v.x = 0
+        v.y = 0
+        while True:
+            diff = (targetAngle - self.btrOdometry.pose.pose.position.z)
+            if (diff > 180):
+                diff -= 180
+            if (diff < -180):
+                diff += 180
+            v.theta = -velocity1(diff)
+            self.setVelocity(v)
+            print(diff, v)
+            if ((-3 < diff) and (diff < 3)):
+                break
+        v.theta = 0
+        self.setVelocity(v)
+        print("finish")
+
     def goToMPSCenter(self):
+        global turn_angle, turn_velocity
+        velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
         version = 2 
         if (version == 1):
             for i in range(2):
@@ -147,22 +188,18 @@ class robotino2022(object):
             self.goToWall(17)
             self.parallelMPS()
         elif (version == 2):
-            rospy.wait_for_service('/btr_aruco/TagInfo')
-            tagInfo = rospy.ServiceProxy('/btr_aruco/TagInfo', TagInfo)
-            tag = tagInfo()
+            rospy.wait_for_service('/btr_aruco/TagLocation')
+            tagInfo = rospy.ServiceProxy('/btr_aruco/TagLocation', TagInfo)
+            tag = tagLocation()
             print(tag)
             if (tag.ok == True):
-                # at first robotino turns and faces to MPS.
-                # image size is 2304x1536
-                centerX = (tag.UpLeft.x + tag.UpRight.x + tag.BottomRight.x + tag.BottomLeft.x) / 4
-                centerY = (tag.Upleft.y + tag.UpRight.y + tag.BottomRight.y + tag.BottomLeft.y) / 4
-                diffX = 2305 - centerX
-                print(diffX)
-
+                degree = math.atan(tag.tag_location.y / tag.tag_location.x)
+                if (tag.tag_location.y < 0):
+                    degree = -degree
+                self.robotinoTurn(degree)
 
     def goToMPSCenter1(self):
-        go_distance = numpy.array([-999, -50, -20, -15, -10, 10, 15, 20,  50, 999])
-        go_velocity = numpy.array([ -50, -50,- 10, -10,   0,  0, 10, 10,  50,  50])
+        global go_distance, go_velocity
                 
         velocityY = interpolate.interp1d(go_distance, go_velocity)
         while True:
@@ -183,9 +220,8 @@ class robotino2022(object):
                 break
 
     def goToWall(self, distance):
-        go_distance = numpy.array([-999, -20, -10,   -1, -0.9, 0,   1, 1.1, 5, 10,  20, 999])
-        go_velocity = numpy.array([ -50, -50, -50,  -15,    0, 0,   0,  15, 15, 50, 100, 100])
-        velocityX = interpolate.interp1d(go_distance, go_velocity)
+        global go_distance_fast, go_velocity_fast
+        velocityX = interpolate.interp1d(go_distance_fast, go_velocity_fast)
         while True:
             sensor = self.centerPoint.x * 100
             v = Pose2D()
@@ -208,8 +244,7 @@ class robotino2022(object):
 
 
     def parallelMPS(self):
-        turn_angle    = numpy.array([-999, -20, -10,  -5, -2, -0.2, 0.1,  2,  5,  10,  20, 999])
-        turn_velocity = numpy.array([  30,  20,  10,   3,  3,    0,   0, -3, -3, -10, -20, -30])
+        global turn_angle, turn_velocity
         velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
 
         while True:

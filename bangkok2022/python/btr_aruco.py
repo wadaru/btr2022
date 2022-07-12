@@ -6,7 +6,8 @@ import math
 import rospy
 import rosservice
 from std_srvs.srv import Empty, EmptyResponse
-from rcll_btr_msgs.msg import Corners, TagInfoResponse, PictureInfoResponse, TagLocationResponse
+from rcll_btr_msgs.msg import Corners, TagInfoResponse, PictureInfoResponse, \
+                                TagLocationResponse
 from rcll_btr_msgs.srv import TagInfo, PictureInfo, TagLocation
 
 def initAruco():
@@ -72,9 +73,11 @@ def tagLocation(data):
     # print("tagSize: ", tagSizeX, tagSizeY)
     if (tagSizeY == 0):
         distanceX = distanceY = 0
+        tagLocation.ok = False
     else:
         distanceX = 7.66 * math.exp(-0.0119 * tagSizeY)
         distanceY = marker_length * pictureMoveY / tagSizeY
+        tagLocation.ok = True
     
     # print("distance: ", distanceX, distanceY)
     # print(tagLocation)
