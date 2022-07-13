@@ -612,7 +612,7 @@ if __name__ == '__main__':
 
   btrField = [[0 for y in range(5)] for x in range(5)]
 
-  rospy.init_node('btr2021')
+  rospy.init_node('btr2022')
   rospy.Subscriber("rcll/beacon", BeaconSignal, beaconSignal)
   rospy.Subscriber("rcll/exploration_info", ExplorationInfo, explorationInfo)
   rospy.Subscriber("rcll/game_state", GameState, gameState)

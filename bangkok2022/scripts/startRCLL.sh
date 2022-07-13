@@ -21,12 +21,13 @@ sudo chmod 777 /dev/ttyUSB?
 
 # gnome-terminal --geometry=105x56 --window\
 $TERM "bash -c roscore" &
-$TERM "sleep 1; cd $SCRIPT_DIR; bash -c ./rosRcllRefBoxNetwork.sh; bash" &
-$TERM "sleep 1; cd $SCRIPT_DIR; bash -c ./robview2.sh; bash" &
-$TERM "sleep 3; cd $PYTHON_DIR; python  ./robotino.py robotino2 9180 10.42.0.1 9182; bash" &
-$TERM "sleep 1; cd $CATKIN_DIR; roslaunch rplidar.launch; bash" &
-$TERM "sleep 2; cd $PYTHON_DIR; bash -c ./btr_rplidar.py; bash" &
-$TERM "sleep 1; cd $PYTHON_DIR; python ./btr_camera.py; bash" &
-$TERM "sleep 2; cd $PYTHON_DIR; python  ./btr_aruco.py; bash" &
-$TERM "sleep 2; cd $PYTHON_DIR; bash -c ./btr_myCobot_ros.py; bash" &
+sleep 1
+$TERM "echo rosRcllRefBoxNetwork.sh; sleep 1; cd $SCRIPT_DIR; bash -c ./rosRcllRefBoxNetwork.sh; bash" &
+$TERM "echo robview2.sh; sleep 1; cd $SCRIPT_DIR; bash -c ./robview2.sh; bash" &
+$TERM "echo robotino.py; sleep 5; cd $PYTHON_DIR; python  ./robotino.py robotino2 9180 10.42.0.1 9182; bash" &
+$TERM "echo rplidar.launch; sleep 1; cd $CATKIN_DIR; roslaunch rplidar.launch; bash" &
+$TERM "echo btr_rplidar.py; sleep 2; cd $PYTHON_DIR; bash -c ./btr_rplidar.py; bash" &
+$TERM "echo btr_camera.py; sleep 1; cd $PYTHON_DIR; python ./btr_camera.py; bash" &
+$TERM "echo btr_aruco.py; sleep 2; cd $PYTHON_DIR; python  ./btr_aruco.py; bash" &
+$TERM "echo btr_myCobot_ros.py; sleep 2; cd $PYTHON_DIR; bash -c ./btr_myCobot_ros.py; bash" &
 

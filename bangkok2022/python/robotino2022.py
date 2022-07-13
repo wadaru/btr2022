@@ -41,6 +41,7 @@ def tangent_angle(u, v):
     return numpy.rad2deg(numpy.arccos(numpy.clip(c, -1.0, 1.0)))
 
 def MPS_angle(u, v):
+    print(u, v)
     p0 = Point()
     p1 = Point()
     p0.x = 1.0
@@ -54,7 +55,7 @@ class robotino2022(object):
         self.btrOdometry = Odometry()
         self.btrVelocity = Float32MultiArray()
 
-        rospy.init_node('btr2021')
+        # rospy.init_node('robotino2022')
         self.sub1 = rospy.Subscriber("robotino/odometry", Odometry, self.robotinoOdometry)
         self.sub2 = rospy.Subscriber("robotino/getVelocity", Float32MultiArray, self.robotinoVelocity)
         self.sub3 = rospy.Subscriber("/btr/centerPoint", Point, self.centerPoint)
@@ -189,14 +190,23 @@ class robotino2022(object):
             self.parallelMPS()
         elif (version == 2):
             rospy.wait_for_service('/btr_aruco/TagLocation')
-            tagInfo = rospy.ServiceProxy('/btr_aruco/TagLocation', TagInfo)
-            tag = tagLocation()
+            tagInfo = rospy.ServiceProxy('/btr_aruco/TagLocation', TagLocation)
+            tag = tagInfo()
             print(tag)
             if (tag.ok == True):
                 degree = math.atan(tag.tag_location.y / tag.tag_location.x)
                 if (tag.tag_location.y < 0):
                     degree = -degree
                 self.robotinoTurn(degree)
+                for i in range(2):
+                    # turn parallel for the face of MPS.
+                    self.parallelMPS()
+                    # goTo at the front of the MPS with 50cm.
+                    self.goToWall(50)
+                    # go to the front of the MPS.
+                    self.goToMPSCenter1()
+                self.goToWall(17)
+                self.parallelMPS()
 
     def goToMPSCenter1(self):
         global go_distance, go_velocity
