@@ -18,7 +18,7 @@ def initAruco():
     parameters = aruco.DetectorParameters_create()
 
 def getAruco(data):
-    global cap, dict_aruco, parameters
+    global cap, dict_aruco, parameters, corners
     pictureInfo = PictureInfo()
     rospy.wait_for_service('/btr_camera/picture')
     videoCapture = rospy.ServiceProxy('/btr_camera/picture', PictureInfo)
@@ -52,38 +52,78 @@ def getAruco(data):
     return tagInfo
 
 def tagLocation(data):
+    global corners
     tagLocation = TagLocationResponse()
     tagInfo = getAruco(data)
-
-    marker_length = 0.13
-
-    centerX = (tagInfo.UpLeft.x + tagInfo.UpRight.x + tagInfo.BottomRight.x + tagInfo.BottomLeft.x) / 4
-    centerY = (tagInfo.UpLeft.y + tagInfo.UpRight.y + tagInfo.BottomRight.y + tagInfo.BottomLeft.y) / 4
-
-    pictureWidth = 2304
-    pictureHeight = 1536
-
-    pictureMoveX = pictureWidth / 2 - centerX
-    pictureMoveY = pictureHeight / 2 - centerY
-
-    # =(sqrt((B32-B30)^2+(B33-B31)^2)+sqrt((B34-B36)^2+(B35-B37)^2))/2
-    tagSizeX = (math.sqrt((tagInfo.UpRight.x - tagInfo.UpLeft.x) ** 2 + (tagInfo.UpRight.y - tagInfo.UpLeft.y) ** 2) + math.sqrt((tagInfo.BottomRight.x - tagInfo.BottomLeft.x) ** 2 + (tagInfo.BottomRight.y - tagInfo.BottomLeft.y) ** 2)) / 2
-    tagSizeY = (math.sqrt((tagInfo.BottomLeft.x - tagInfo.UpLeft.x) ** 2 + (tagInfo.BottomLeft.y - tagInfo.UpLeft.y) ** 2) + math.sqrt((tagInfo.BottomRight.x - tagInfo.UpRight.x) ** 2 + (tagInfo.BottomRight.y - tagInfo.UpRight.y) ** 2)) / 2
-
-    # print("tagSize: ", tagSizeX, tagSizeY)
-    if (tagSizeY == 0):
-        distanceX = distanceY = 0
+    if (tagInfo.ok == False):
         tagLocation.ok = False
     else:
-        distanceX = 7.66 * math.exp(-0.0119 * tagSizeY)
-        distanceY = marker_length * pictureMoveY / tagSizeY
-        tagLocation.ok = True
+
+        marker_length = 0.13
+
+        if (False):
+            centerX = (tagInfo.UpLeft.x + tagInfo.UpRight.x + tagInfo.BottomRight.x + tagInfo.BottomLeft.x) / 4
+            centerY = (tagInfo.UpLeft.y + tagInfo.UpRight.y + tagInfo.BottomRight.y + tagInfo.BottomLeft.y) / 4
+
+            pictureWidth = 2304
+            pictureHeight = 1536
+
+            pictureMoveX = pictureWidth / 2 - centerX
+            pictureMoveY = pictureHeight / 2 - centerY
+
+            # =(sqrt((B32-B30)^2+(B33-B31)^2)+sqrt((B34-B36)^2+(B35-B37)^2))/2
+            tagSizeX = (math.sqrt((tagInfo.UpRight.x - tagInfo.UpLeft.x) ** 2 + (tagInfo.UpRight.y - tagInfo.UpLeft.y) ** 2) + math.sqrt((tagInfo.BottomRight.x - tagInfo.BottomLeft.x) ** 2 + (tagInfo.BottomRight.y - tagInfo.BottomLeft.y) ** 2)) / 2
+            tagSizeY = (math.sqrt((tagInfo.BottomLeft.x - tagInfo.UpLeft.x) ** 2 + (tagInfo.BottomLeft.y - tagInfo.UpLeft.y) ** 2) + math.sqrt((tagInfo.BottomRight.x - tagInfo.UpRight.x) ** 2 + (tagInfo.BottomRight.y - tagInfo.UpRight.y) ** 2)) / 2
+
+            # print("tagSize: ", tagSizeX, tagSizeY)
+            if (tagSizeY == 0):
+                distanceX = distanceY = 0
+                tagLocation.ok = False
+            else:
+                distanceX = 7.66 * math.exp(-0.0119 * tagSizeY)
+                distanceY = marker_length * pictureMoveY / tagSizeY
+                tagLocation.ok = True
     
-    # print("distance: ", distanceX, distanceY)
-    # print(tagLocation)
-    tagLocation.tag_location.x = distanceX
-    tagLocation.tag_location.y = distanceY
-    tagLocation.tag_id.data = tagInfo.tag_id.data
+            # print("distance: ", distanceX, distanceY)
+            # print(tagLocation)
+            tagLocation.tag_location.x = distanceX
+            tagLocation.tag_location.y = distanceY
+            tagLocation.tag_id.data = tagInfo.tag_id.data
+        elif (True):
+            # camera_matrix = np.array([[613.17477965,   0.        , 316.44554447],
+            #                           [  0.        , 615.60683268, 201.50763039],
+            #                           [  0.        ,   0.        ,   1.        ]])
+            # distortion_coeff = np.array([ 0.10194539, -0.08779595, -0.0157452 , -0.004555  , -0.19266678])
+            camera_matrix = np.array([[614.72443761,   0.        , 329.52316472],
+                                      [  0.        , 613.30068366, 199.92578538],
+                                      [  0.        ,   0.        ,   1.        ]])
+            distortion_coeff = np.array([ 0.13505291, -0.29420201, -0.00645303,  0.00196495, -0.01754147])
+
+            rvec, tvec, _ = aruco.estimatePoseSingleMarkers(corners, marker_length, camera_matrix, distortion_coeff)
+            tvec = np.squeeze(tvec)
+            rvec = np.squeeze(rvec)
+            rvec_matrix = cv2.Rodrigues(rvec)
+            rvec_matrix = rvec_matrix[0] # rodoriguesから抜き出し
+            transpose_tvec = tvec[np.newaxis, :].T
+            proj_matrix = np.hstack((rvec_matrix, transpose_tvec))
+  
+            # オイラー角への変換
+            euler_angle = cv2.decomposeProjectionMatrix(proj_matrix)[6] # [deg]
+            print("x : " + str(tvec[0]))
+            print("y : " + str(tvec[1]))
+            print("z : " + str(tvec[2]))
+
+            #カメラ座標系におけるx軸の回転角度　
+            #print("roll : " + str(euler_angle[0]))
+            #カメラ座標系におけるy軸の回転角度
+            print("pitch: " + str(euler_angle[1]))
+            #カメラ座標系におけるz軸の回転角度
+            #print("yaw  : " + str(euler_angle[2]))
+            tagLocation.tag_location.x = tvec[2]
+            tagLocation.tag_location.y = -tvec[0]
+            tagLocation.tag_location.theta = euler_angle[1]
+            tagLocation.tag_id.data = tagInfo.tag_id.data
+            tagLocation.ok = True
     return tagLocation
 
 if __name__ == "__main__":
