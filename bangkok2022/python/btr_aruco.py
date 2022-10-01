@@ -33,7 +33,7 @@ def getAruco(data):
 
     corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, dict_aruco, parameters=parameters)
     aruco.drawDetectedMarkers(gray, corners, ids, (0,255,255))
-    cv2.imwrite("./test.jpg", gray)
+    cv2.imwrite("../pictures/test.jpg", gray)
     # print(ids,corners)
 
     # if (len(ids) == 0):
@@ -124,6 +124,13 @@ def tagLocation(data):
             tagLocation.tag_location.theta = euler_angle[1]
             tagLocation.tag_id.data = tagInfo.tag_id.data
             tagLocation.ok = True
+
+            # draw
+            img = cv2.imread("../pictures/test.jpg")
+            draw_pole_length = marker_length / 2
+            aruco.drawAxis(img, camera_matrix, distortion_coeff, rvec, tvec, draw_pole_length)
+            cv2.imwrite("../pictures/axis.jpg", img)
+
     return tagLocation
 
 if __name__ == "__main__":

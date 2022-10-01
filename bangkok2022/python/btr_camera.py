@@ -13,15 +13,20 @@ from rcll_btr_msgs.srv import PictureInfo
 def initCamera():
     global cap
     cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640.0)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480.0)
+    print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    print(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 def getPicture(data):
     global cap, bath_path, n, ext
-    ret, frame = cap.read()
+    ret, frame1 = cap.read()
+    frame2 = cv2.resize(frame1, (640, 480))
     pictureInfo = PictureInfoResponse()
     pictureInfo.ok = ret
     pictureInfo.filename.data = String()
     pictureInfo.filename.data = '{}_{:0>4}.{}'.format(base_path, n, ext)
-    cv2.imwrite(pictureInfo.filename.data, frame)
+    cv2.imwrite(pictureInfo.filename.data, frame2)
     n += 1
     print(pictureInfo.filename)
     return pictureInfo
