@@ -1,0 +1,9 @@
+<launch>
+  <node name="rosRcllRefBoxNetwork" pkg="rcll_refbox_peer" type="rosRcllRefBoxNetwork.sh" />
+  <node name="robViewROS" pkg="rcll_btr_msgs" type="robview2.sh" />
+  <!-- <node name="robotino" pkg="rcll_btr_msgs" type="robotino.py" /> -->
+  <node name="robotino" pkg="rcll_btr_msgs" type="robotino.py" args="robotino2 9180 10.42.0.1 9182" />
+  <!-- <include file="$(find rplidar_ros)/launch/rplidar_a3.launch" /> -->
+  <include file="$(find rplidar_ros)/launch/rplidar.launch" />
+  <node name="btr_rplidar" pkg="rcll_btr_msgs" type="btr_rplidar.py" />
+</launch>
