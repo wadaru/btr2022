@@ -89,10 +89,10 @@ class Udpcomm():
     s = struct.Struct("!B")
     data, addr = self.recv.recvfrom(self.BUFSIZE)
     for i in range(8):
-      self.view3Recv[i] = ((int(data[i * 4 + 4 + 0])      )
-                        + (int(data[i * 4 + 4 + 1]) <<  8)
-                        + (int(data[i * 4 + 4 + 2]) << 16)
-                        + (int(data[i * 4 + 4 + 3]) << 24))
+      self.view3Recv[i] = ((ord(data[i * 4 + 4 + 0])      )
+                        + (ord(data[i * 4 + 4 + 1]) <<  8)
+                        + (ord(data[i * 4 + 4 + 2]) << 16)
+                        + (ord(data[i * 4 + 4 + 3]) << 24))
       if (self.view3Recv[i] >= (1 << 31)):
         self.view3Recv[i]  -= (1 <<32)
       # print (self.view3Recv[i])
