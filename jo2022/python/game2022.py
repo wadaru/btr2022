@@ -37,17 +37,17 @@ from rcll_ros_msgs.msg import BeaconSignal, ExplorationInfo, \
 from rcll_ros_msgs.srv import SendBeaconSignal, SendMachineReport, \
                               SendMachineReportBTR, SendPrepareMachine
 
-zoneX = { "S11" :  500, "S21" : 1500, "S31" : 2500, "S41" : 3500, "S51" : 4500,
-          "S12" :  500, "S22" : 1500, "S32" : 2500, "S42" : 3500, "S52" : 4500,
-          "S13" :  500, "S23" : 1500, "S33" : 2500, "S43" : 3500, "S53" : 4500,
-          "S14" :  500, "S24" : 1500, "S34" : 2500, "S44" : 3500, "S54" : 4500,
-          "S15" :  500, "S25" : 1500, "S35" : 2500, "S45" : 3500, "S55" : 4500 }
+zoneX = { "S11" :  -500, "S21" : -1500, "S31" : -2500, "S41" : -3500, "S51" : -4500,
+          "S12" :  -500, "S22" : -1500, "S32" : -2500, "S42" : -3500, "S52" : -4500,
+          "S13" :  -500, "S23" : -1500, "S33" : -2500, "S43" : -3500, "S53" : -4500,
+          "S14" :  -500, "S24" : -1500, "S34" : -2500, "S44" : -3500, "S54" : -4500,
+          "S15" :  -500, "S25" : -1500, "S35" : -2500, "S45" : -3500, "S55" : -4500 }
 zoneY = { "S11" :  500, "S21" :  500, "S31" :  500, "S41" :  500, "S51" :  500,
           "S12" : 1500, "S22" : 1500, "S32" : 1500, "S42" : 1500, "S52" : 1500,
           "S13" : 2500, "S23" : 2500, "S33" : 2500, "S43" : 2500, "S53" : 2500,
           "S14" : 3500, "S24" : 3500, "S34" : 3500, "S44" : 3500, "S54" : 3500,
           "S15" : 4500, "S25" : 4500, "S35" : 4500, "S45" : 4500, "S55" : 4500 }
-inputX = { 0: -1000, 45: -500, 90:     0, 135:  500, 180: 1000, 225:  500, 270:     0, 315: -500, 360: -1000}
+inputX = { 0: 1000, 45: 500, 90:     0, 135:  -500, 180: -1000, 225:  -500, 270:     0, 315: 500, 360: 1000}
 inputY = { 0:     0, 45: -500, 90: -1000, 135: -500, 180:    0, 225:  500, 270:  1000, 315:  500, 360:     0}
 outputX = {  0: inputX[180],  45: inputX[225],  90: inputX[270], 135: inputX[315],
            180: inputX[  0], 225: inputX[ 45], 270: inputX[ 90], 315: inputX[135]}
@@ -661,32 +661,11 @@ if __name__ == '__main__':
     
     if (challenge == "test" and challengeFlag):
         challengeFlag = False
-        btrRobotino.robotinoTurn(10)
-
-    if (challenge == "testTurn" and challengeFlag):
-        pose.x = 0
-        pose.y = 0
-        print("setOometry")
-        setOdometry(pose)
-        velocity = Pose2D()
-        velocity.x = 0
-        velocity.y = 0
-        velocity.theta = 10
-        print("setVelocity-1")
-        setVelocity(velocity)
-        challengeFlag = False
-        rospy.sleep(1)
-        velocity.theta = -10
-        print("setVelocity-2")
-        setVelocity(velocity)
-        rospy.sleep(1)
-        velocity.theta = 10
-        print("setVelocity-3")
-        setVelocity(velocity)
-        rospy.sleep(1)
-        velocity.theta = 0
-        print("setVelocity-end")
-        setVelocity(velocity)
+        btrRobotino.goToOutputVelt()
+        # turnClockwise()
+        # btrRobotino.goToInputVelt()
+        # btrRobotino.goToWall(20)
+        # turnCounterClockwise()
         break
 
     if (challenge == "testMPS" and challengeFlag):
@@ -706,10 +685,10 @@ if __name__ == '__main__':
 
     if (challenge == "driving" and challengeFlag):
         print("startDriving for JapanOpen2020")
-        targetZone =  ["S31", "S21", "S22", "S22", "S23", "S43", "S43", "S23", "S21", "S31"]
-        #                          Target1               Target2
-        targetAngle = [  180,    90,    45,    90,     0,   180,   180,   270,     0,    90] 
-        sleepTime   = [    0,     0,     5,     0,     0,     5,     0,     0,     0,     1]
+        targetZone =  ["S31", "S32", "S22", "S22", "S32", "S35", "S35", "S31"]
+        #                            Target1               Target2
+        targetAngle = [   90,     0,    90,   180,    90,    45,   270,    90]
+        sleepTime   = [    0,     0,     5,     0,     0,     5,     0,     1]
         for number in range(len(targetZone)):
             print(targetZone[number])
             x = zoneX[targetZone[number]]
@@ -719,67 +698,77 @@ if __name__ == '__main__':
             time.sleep(sleepTime[number])
 
         challengeFlag = False
+        break
 
     if (challenge == "positioning" and challengeFlag):
         print("startPositioning for JapanOpen2020")
         #
         # MPSZone, MPSAngle, firstSide, turn
         #
-        MPSZone = "S44" # Input !!!
-        MPSAngle = 90  # Input !!!
+        MPSZone = "S53" # Input !!!
+        MPSAngle = 0  # Input !!!
         firstSide = "input"
-        turn = "clock"
+        turn = "counterClock"
+
+        # goTo S322
+        goToPoint(zoneX["S32"], zoneY["S32"], 90)
+
         if (firstSide == "input"):
             MPSx = zoneX[MPSZone] + inputX[MPSAngle]
             MPSy = zoneY[MPSZone] + inputY[MPSAngle]
-            theta = MPSAngle
+            theta = MPSAngle + 180
         else:
             MPSx = zoneX[MPSZone] + outputX[MPSAngle]
             MPSy = zoneY[MPSZone] + outputY[MPSAngle]
-            theta = MPSAngle + 180
+            theta = MPSAngle
         
         goToPoint(MPSx, MPSy, theta)
-        goToMPSCenter(340)
+        goToMPSCenter(350)
         if (firstSide == "input"):
             time.sleep(10)
 
+        btrRobotino.goToWall(20)
         if (turn == "clock"):
             turnClockwise()
         else:
             turnCounterClockwise()
-        goToMPSCenter(340)
+        goToMPSCenter(350)
         time.sleep(10)
         
+        btrRobotino.goToWall(20)
         if (turn == "clock"):
             turnCounterClockwise()
         else:
             turnClockwise()
         if (firstSide == "output"):
-            goToMPSCenter(340) 
+            goToMPSCenter(350) 
             time.sleep(10)
         
         theta = 270
         goToPoint(MPSx, MPSy, theta)
-        x = zoneX["S31"]
-        y = zoneY["S31"]
-        theta = 90
-        goToPoint(x, y, theta)
+
+        # goTo S32 & S31
+        goToPoint(zoneX["S32"], zoneY["S32"], 270)
+        goToPoint(zoneX["S31"], zoneY["S31"], 90)
         challengeFlag = False
+        break
 
     if (refboxGamePhase == 30 and challenge == "grasping" and challengeFlag):
         startGrasping()
         challengeFlag = False
+        break
 
     if (challenge == "rcjj2022" and challengeFlag):
         startGrasping()
         challengeFlag = False
-
+        break
 
     if (refboxGamePhase == 30 and challenge == "navigation" and challengeFlag):
         if (refboxMachineInfoFlag and refboxNavigationRoutesFlag):
             startNavigation()
             challengeFlag = False
-        
+            break
+
     # send machine report for Exploration Phase
     if (refboxGamePhase == 20):
         if (refboxTime.sec == 10):

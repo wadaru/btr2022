@@ -130,8 +130,8 @@ class robotino2022(object):
 
     def goToOutputVelt(self):   # 325mm from left side (= 25 + 50*6)
         self.goToMPSCenter()
-        # self.move(0, -20, 0, 1)
-        # self.goToWall(15)
+        self.move(0, 15, 0, 1)
+        self.goToWall(15)
 
     def move(self, x, y, theta, number):
         v = Pose2D()
@@ -141,7 +141,9 @@ class robotino2022(object):
         for i in range(number):
             self.setVelocity(v)
             # rospy.sleep(1)
-        v.x = v.y = v.theta = 0
+        v.x = 0
+        v.y = 0
+        v.theta = 0
         self.setVelocity(v)
 
     def robotinoTurn(self, turnAngle):
@@ -177,7 +179,7 @@ class robotino2022(object):
     def goToMPSCenter(self):
         global turn_angle, turn_velocity
         velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
-        version = 2 
+        version = 1 
         if (version == 1):
             for i in range(2):
                 # turn parallel for the face of MPS.
