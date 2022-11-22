@@ -9,7 +9,7 @@ import numpy
 from numpy import linalg
 from scipy import interpolate
 
-from geometry_msgs.msg import Pose, Pose2D, PoseStamped, Point, Quaternion
+from geometry_msgs.msg import Pose, Pose2D, PoseStamped, Point, Quaternion, Twist
 from socket import socket, AF_INET, SOCK_DGRAM
 from std_msgs.msg import Int8, Int16, UInt32, String, \
                          Float32, Float32MultiArray, \
@@ -63,6 +63,7 @@ class btr2022(object):
         self.sub4 = rospy.Subscriber("/btr/leftPoint", Point, self.leftPoint)
         self.sub5 = rospy.Subscriber("/btr/rightPoint", Point, self.rightPoint)
         self.rate = rospy.Rate(10)
+        self.pub1 = rospy.Publisher("/cmd_vel", Twist, queue_size = 10)
 
         # self.pose = Pose2D()
         # self.pose.x = -2500
@@ -87,16 +88,17 @@ class btr2022(object):
         resp = resetOdometry(data.x, data.y, data.theta)
 
     def setVelocity(self, data):
-        velocity = SetVelocity()
+        twist = Twist()
         pose = Pose2D()
-        rospy.wait_for_service('/rvw2/setVelocity')
-        setVelocity = rospy.ServiceProxy('/rvw2/setVelocity', SetVelocity)
-        velocity.header = Header()
         pose = data
-        velocity.pose = pose
-        print("send")
-        resp = setVelocity(velocity.header, velocity.pose)
-        print("setVelocity")
+        twist.linear.x = data.x
+        twist.linear.y = data.y
+        twist.linear.z = 0
+        twist.angular.x = 0
+        twist.angular.y = 0
+        twist.angular.z = data.theta
+        self.pub1.publish(twist)
+        self.rate.sleep()
 
     def goToPoint(self, x, y, theta):
         self.position = SetPosition()

@@ -55,16 +55,6 @@ outputX = {  0: inputX[180],  45: inputX[225],  90: inputX[270], 135: inputX[315
 outputY = {  0: inputY[180],  45: inputY[225],  90: inputY[270], 135: inputY[315],
            180: inputY[  0], 225: inputY[ 45], 270: inputY[ 90], 315: inputY[135]}
 
-def setVelocity(data):
-    velocity = SetVelocity()
-    pose = Pose2D()
-    rospy.wait_for_service('/rvw2/setVelocity')
-    setVelocity = rospy.ServiceProxy('/rvw2/setVelocity', SetVelocity)
-    velocity.header = Header()
-    pose = data
-    velocity.pose = pose
-    resp = setVelocity(velocity.header, velocity.pose)
-
 def goToPoint(x, y, theta):
     position = SetPosition()
     pose = Pose2D()
@@ -652,6 +642,13 @@ if __name__ == '__main__':
     
     if (challenge == "test" and challengeFlag):
         challengeFlag = False
+        cmd = Pose2D()
+        cmd.x = -10
+        cmd.y = 0
+        cmd.theta = 0
+        for i in range(10):
+            btrRobotino.setVelocity(cmd)
+        
         # btrRobotino.goToOutputVelt()
         # turnClockwise()
         # btrRobotino.goToInputVelt()
