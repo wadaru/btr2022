@@ -2,16 +2,16 @@
 import os
 import rospy
 from std_srvs.srv import Empty, EmptyResponse
-CMD = "ssh -i id_rsa_cobotta cobotta@cobotta-0 python3 btr_cobotta.py"
+CMD = "ssh -i id_rsa_cobotta cobotta@cobotta-0 rosservice call"
 
 def grab_Arm(data):
-    cmd = CMD + " move_g"
+    cmd = CMD + " /btr/move_g"
     print(cmd)
     os.system(cmd)
     return EmptyResponse()
 
 def release_Arm(data):
-    cmd = CMD + " move_r"
+    cmd = CMD + " /btr/move_r"
     print(cmd)
     os.system(cmd)
     return EmptyResponse()
