@@ -15,7 +15,8 @@ import time
 import math
 import sys
 import rospy
-import robotino2022
+# import robotino2022
+import btr2022
 from geometry_msgs.msg import Pose, Pose2D, PoseStamped, PointStamped, Point, Quaternion
 from socket import socket, AF_INET, SOCK_DGRAM
 from std_msgs.msg import Int8, Int16, UInt32, String, \
@@ -53,16 +54,6 @@ outputX = {  0: inputX[180],  45: inputX[225],  90: inputX[270], 135: inputX[315
            180: inputX[  0], 225: inputX[ 45], 270: inputX[ 90], 315: inputX[135]}
 outputY = {  0: inputY[180],  45: inputY[225],  90: inputY[270], 135: inputY[315],
            180: inputY[  0], 225: inputY[ 45], 270: inputY[ 90], 315: inputY[135]}
-
-def setOdometry(data):
-    odometry = SetOdometry()
-    pose = Pose2D()
-    rospy.wait_for_service('/rvw2/setOdometry')
-    setOdometry = rospy.ServiceProxy('/rvw2/setOdometry', SetOdometry)
-    odometry.header = Header()
-    pose = data
-    odometry.pose = pose
-    resp = setOdometry(odometry.header, odometry.pose)
 
 def setVelocity(data):
     velocity = SetVelocity()
@@ -628,7 +619,7 @@ if __name__ == '__main__':
   machineReport = MachineReportEntryBTR()
   prepareMachine = SendPrepareMachine() 
 
-  btrRobotino = robotino2022.robotino2022()
+  btrRobotino = btr2022.btr2022()
 
   pose = Pose2D()
   pose.x = -1000 * robotNum - 1500
@@ -650,7 +641,7 @@ if __name__ == '__main__':
       # goToPoint(-800, -1500, 90)
       goToPoint(pose.x, pose.y, pose.theta)
       exit()
-  setOdometry(pose)
+  btrRobotino.resetOdometry(pose)
 
   print(challenge)
   challengeFlag = True
@@ -661,7 +652,7 @@ if __name__ == '__main__':
     
     if (challenge == "test" and challengeFlag):
         challengeFlag = False
-        btrRobotino.goToOutputVelt()
+        # btrRobotino.goToOutputVelt()
         # turnClockwise()
         # btrRobotino.goToInputVelt()
         # btrRobotino.goToWall(20)
@@ -754,11 +745,6 @@ if __name__ == '__main__':
         break
 
     if (refboxGamePhase == 30 and challenge == "grasping" and challengeFlag):
-        startGrasping()
-        challengeFlag = False
-        break
-
-    if (challenge == "rcjj2022" and challengeFlag):
         startGrasping()
         challengeFlag = False
         break

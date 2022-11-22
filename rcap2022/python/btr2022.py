@@ -21,6 +21,7 @@ import rcll_ros_msgs
 from rcll_btr_msgs.msg import TagInfoResponse, TagLocationResponse
 from rcll_btr_msgs.srv import SetOdometry, SetPosition, SetVelocity, \
                               SetDistance, TagInfo,     TagLocation
+from robotino_msgs.srv import ResetOdometry
 
 turn_angle    = numpy.array([-999, -20, -10,  -5, -2, -0.2, 0.1,  2,  5,  10,  20, 999])
 turn_velocity = numpy.array([  30,  20,  10,   3,  3,    0,   0, -3, -3, -10, -20, -30])
@@ -50,12 +51,12 @@ def MPS_angle(u, v):
     p1.y = v.y - u.y
     return tangent_angle(p1, p0)
 
-class robotino2022(object):
+class btr2022(object):
     def __init__(self):
         self.btrOdometry = Odometry()
         self.btrVelocity = Float32MultiArray()
 
-        # rospy.init_node('robotino2022')
+        # rospy.init_node('btr2022')
         self.sub1 = rospy.Subscriber("robotino/odometry", Odometry, self.robotinoOdometry)
         self.sub2 = rospy.Subscriber("robotino/getVelocity", Float32MultiArray, self.robotinoVelocity)
         self.sub3 = rospy.Subscriber("/btr/centerPoint", Point, self.centerPoint)
@@ -73,15 +74,17 @@ class robotino2022(object):
     def run(self):
         print("run")
 
-    def setOdometry(self, data):
-        odometry = SetOdometry()
+    def resetOdometry(self, data):
+        odometry = ResetOdometry()
         pose = Pose2D()
-        rospy.wait_for_service('/rvw2/setOdometry')
-        setOdometry = rospy.ServiceProxy('/rvw2/setOdometry', SetOdometry)
-        odometry.header = Header()
-        pose = data
-        odometry.pose = pose
-        resp = setOdometry(odometry.header, odometry.pose)
+        rospy.wait_for_service('/reset_odometry')
+        resetOdometry = rospy.ServiceProxy('/reset_odometry', ResetOdometry)
+        # odometry.header = Header()
+        odometry.x = data.x
+        odometry.y = data.y
+        odometry.phi = data.theta
+        # resp = resetOdometry(odometry.x, odometry.y, odometry.phi)
+        resp = resetOdometry(data.x, data.y, data.theta)
 
     def setVelocity(self, data):
         velocity = SetVelocity()
@@ -338,7 +341,7 @@ if __name__ == '__main__':
   print(challenge)
   challengeFlag = True
 
-  agent = robotino2022()
+  agent = btr2022()
   # while True:
   while not rospy.is_shutdown():
 
