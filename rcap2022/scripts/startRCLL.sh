@@ -26,5 +26,5 @@ $TERM "echo rplidar.launch; sleep 1; cd $RPLIDAR_DIR; roslaunch rplidar_a3.launc
 $TERM "echo btr_rplidar.py; sleep 2; cd $PYTHON_DIR; bash -c ./btr_rplidar.py; bash" &
 $TERM "echo btr_camera.py; sleep 1; cd $PYTHON_DIR; python3 ./btr_camera.py; bash" &
 $TERM "echo btr_aruco.py; sleep 2; cd $PYTHON_DIR; python3  ./btr_aruco.py; bash" &
-$TERM "echo btr_myCobot_ros.py; sleep 2; cd $PYTHON_DIR; python3 ./btr_myCobot_ros.py; bash" &
+$TERM "echo btr_cobotta_ros.py; sleep 2; cd $PYTHON_DIR; python3 ./btr_cobotta_ros.py; bash" &
 # $TERM "echo please power on and run the script for Cobotta.; bash" &

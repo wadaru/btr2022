@@ -2,7 +2,7 @@
 import os
 import rospy
 from std_srvs.srv import Empty, EmptyResponse
-CMD = "ssh -i id_rsa_cobotta cobotta@cobotta-0 rosservice call"
+CMD = "ssh -i ../cobotta/id_rsa_cobotta cobotta@cobotta-0 \"source /opt/ros/melodic/setup.bash; source ~/catkin_ws/devel/setup.bash; rosservice call \""
 
 def grab_Arm(data):
     cmd = CMD + " /btr/move_g"
