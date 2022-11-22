@@ -642,14 +642,7 @@ if __name__ == '__main__':
     
     if (challenge == "test" and challengeFlag):
         challengeFlag = False
-        cmd = Pose2D()
-        cmd.x = -10
-        cmd.y = 0
-        cmd.theta = 0
-        for i in range(10):
-            btrRobotino.setVelocity(cmd)
-        
-        # btrRobotino.goToOutputVelt()
+        btrRobotino.goToOutputVelt()
         # turnClockwise()
         # btrRobotino.goToInputVelt()
         # btrRobotino.goToWall(20)

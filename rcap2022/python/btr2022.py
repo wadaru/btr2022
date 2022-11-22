@@ -8,6 +8,10 @@ import rospy
 import numpy
 from numpy import linalg
 from scipy import interpolate
+import quaternion
+import tf
+from geometry_msgs.msg import Vector3
+
 
 from geometry_msgs.msg import Pose, Pose2D, PoseStamped, Point, Quaternion, Twist
 from socket import socket, AF_INET, SOCK_DGRAM
@@ -23,14 +27,25 @@ from rcll_btr_msgs.srv import SetOdometry, SetPosition, SetVelocity, \
                               SetDistance, TagInfo,     TagLocation
 from robotino_msgs.srv import ResetOdometry
 
-turn_angle    = numpy.array([-999, -20, -10,  -5, -2, -0.2, 0.1,  2,  5,  10,  20, 999])
-turn_velocity = numpy.array([  30,  20,  10,   3,  3,    0,   0, -3, -3, -10, -20, -30])
+# linear max velocity is 0.1[m/s] and min is 0.01.
+# angular max velocity is 1.0[rad/s?] and min is 0.01
+turn_angle    = numpy.array([-999, -20, -10,   -5,   -2, -0.2, 0.1,     2,     5,    10,   20,  999])
+turn_velocity = numpy.array([ 1.0, 0.2, 0.1, 0.01, 0.01,    0,   0,- 0.01, -0.01,  -0.1, -0.2, -1.0])
 
-go_distance = numpy.array([-999, -50, -20, -15, -10, 10, 15, 20,  50, 999])
-go_velocity = numpy.array([ -50, -50,- 10, -10,   0,  0, 10, 10,  50,  50])
+go_distance = numpy.array([-999, -50,   -20,  -15, -10, 10,   15,   20,  50, 999])
+go_velocity = numpy.array([-0.1,-0.1, -0.01,-0.01,   0,  0, 0.01, 0.01, 0.1, 0.1])
 
-go_distance_fast = numpy.array([-999, -20, -10,   -1, -0.9, 0,   1, 1.1, 5, 10,  20, 999])
-go_velocity_fast = numpy.array([ -50, -50, -50,  -15,    0, 0,   0,  15, 15, 50, 100, 100])
+go_distance_fast = numpy.array([-999, -20, -10,   -1, -0.9, 0,   1, 1.1,    5, 10,  20, 999])
+go_velocity_fast = numpy.array([-0.1,-0.1,-0.1,-0.01,    0, 0,0.01,0.01,0.015,0.1, 0.1, 0.1])
+
+def quaternion_to_euler(quaternion):
+    """Convert Quaternion to Euler Angles
+
+    quarternion: geometry_msgs/Quaternion
+    euler: geometry_msgs/Vector3
+    """
+    e = tf.transformations.euler_from_quaternion((quaternion.x, quaternion.y, quaternion.z, quaternion.w))
+    return Vector3(x=e[0], y=e[1], z=e[2])
 
 def tangent_angle(u, v):
     i = numpy.inner([u.y, u.x], [v.y, v.x])
@@ -42,7 +57,7 @@ def tangent_angle(u, v):
     return numpy.rad2deg(numpy.arccos(numpy.clip(c, -1.0, 1.0)))
 
 def MPS_angle(u, v):
-    print(u, v)
+    # print(u, v)
     p0 = Point()
     p1 = Point()
     p0.x = 1.0
@@ -54,11 +69,9 @@ def MPS_angle(u, v):
 class btr2022(object):
     def __init__(self):
         self.btrOdometry = Odometry()
-        self.btrVelocity = Float32MultiArray()
 
         # rospy.init_node('btr2022')
-        self.sub1 = rospy.Subscriber("robotino/odometry", Odometry, self.robotinoOdometry)
-        self.sub2 = rospy.Subscriber("robotino/getVelocity", Float32MultiArray, self.robotinoVelocity)
+        self.sub1 = rospy.Subscriber("/odom", Odometry, self.robotinoOdometry)
         self.sub3 = rospy.Subscriber("/btr/centerPoint", Point, self.centerPoint)
         self.sub4 = rospy.Subscriber("/btr/leftPoint", Point, self.leftPoint)
         self.sub5 = rospy.Subscriber("/btr/rightPoint", Point, self.rightPoint)
@@ -71,7 +84,21 @@ class btr2022(object):
         # self.pose.theta = 90
         # print("init", self.pose.x, self.pose.y, self.pose.theta)
         # self.setOdometry(self.pose)
+
+        data = Pose2D()
+        self.centerPoint = data
+        self.leftPoint = data
+        self.rightPoint = data
+
+        self.startRpLidar()
         
+
+    def startRpLidar(self):
+        # setup for RPLidar
+        rospy.wait_for_service('/btr/scan_start')
+        scan_start = rospy.ServiceProxy('/btr/scan_start', Empty)
+        resp = scan_start()
+
     def run(self):
         print("run")
 
@@ -80,17 +107,11 @@ class btr2022(object):
         pose = Pose2D()
         rospy.wait_for_service('/reset_odometry')
         resetOdometry = rospy.ServiceProxy('/reset_odometry', ResetOdometry)
-        # odometry.header = Header()
-        odometry.x = data.x
-        odometry.y = data.y
-        odometry.phi = data.theta
         # resp = resetOdometry(odometry.x, odometry.y, odometry.phi)
-        resp = resetOdometry(data.x, data.y, data.theta)
+        resp = resetOdometry(data.x, data.y, data.theta / 180 * math.pi)
 
     def setVelocity(self, data):
         twist = Twist()
-        pose = Pose2D()
-        pose = data
         twist.linear.x = data.x
         twist.linear.y = data.y
         twist.linear.z = 0
@@ -129,11 +150,13 @@ class btr2022(object):
         print("goToPoint")
 
     def goToInputVelt(self):    # 375mm from left side(= 25 + 50*7)
+        self.goToWall(50)
         self.goToMPSCenter()
         self.move(0, 20, 0, 4)
         self.goToWall(15)
 
     def goToOutputVelt(self):   # 325mm from left side (= 25 + 50*6)
+        self.goToWall(50)
         self.goToMPSCenter()
         self.move(0, 15, 0, 1)
         self.goToWall(15)
@@ -156,8 +179,9 @@ class btr2022(object):
         velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
 
         while True:
+            print("turn")
             nowAngle = self.btrOdometry
-            print(nowAngle)
+            # print(nowAngle.pose.pose.position.z)
             if (nowAngle.header.seq != 0):
                 break
 
@@ -184,8 +208,15 @@ class btr2022(object):
     def goToMPSCenter(self):
         global turn_angle, turn_velocity
         velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
-        version = 1 
-        if (version == 1):
+        rospy.wait_for_service('/btr_aruco/TagLocation')
+        tagInfo = rospy.ServiceProxy('/btr_aruco/TagLocation', TagLocation)
+        tag = tagInfo()
+        print(tag)
+        if (tag.ok == True):
+            degree = math.atan(tag.tag_location.y / tag.tag_location.x)
+            if (tag.tag_location.y < 0):
+                degree = -degree
+            self.robotinoTurn(degree)
             for i in range(2):
                 # turn parallel for the face of MPS.
                 self.parallelMPS()
@@ -195,25 +226,6 @@ class btr2022(object):
                 self.goToMPSCenter1()
             self.goToWall(17)
             self.parallelMPS()
-        elif (version == 2):
-            rospy.wait_for_service('/btr_aruco/TagLocation')
-            tagInfo = rospy.ServiceProxy('/btr_aruco/TagLocation', TagLocation)
-            tag = tagInfo()
-            print(tag)
-            if (tag.ok == True):
-                degree = math.atan(tag.tag_location.y / tag.tag_location.x)
-                if (tag.tag_location.y < 0):
-                    degree = -degree
-                self.robotinoTurn(degree)
-                for i in range(2):
-                    # turn parallel for the face of MPS.
-                    self.parallelMPS()
-                    # goTo at the front of the MPS with 50cm.
-                    self.goToWall(50)
-                    # go to the front of the MPS.
-                    self.goToMPSCenter1()
-                self.goToWall(17)
-                self.parallelMPS()
 
     def goToMPSCenter1(self):
         global go_distance, go_velocity
@@ -229,7 +241,7 @@ class btr2022(object):
                 v.y = velocityY(dist)
             v.theta = 0
             print("MPSCenter:", dist, v.y)
-            if ((-1 < v.y) and (v.y < 1)):
+            if ((-0.001 < v.y) and (v.y < 0.001)):
                 v.y = 0
             if (not(math.isnan(dist))):
                 self.setVelocity(v)
@@ -246,13 +258,13 @@ class btr2022(object):
                 if (distance < 17):
                     v.x = 0
                 else:
-                    v.x = -15
+                    v.x = -0.015
             else:
                 v.x = velocityX(sensor - distance)
             v.y = 0
             v.theta = 0
             print("Wall ", distance, "cm:", sensor, v.x)
-            if ((-1 < v.x) and (v.x < 1)):
+            if ((-0.001 < v.x) and (v.x < 0.001)):
                 v.x = 0
             if (not(math.isnan(sensor))):
                 self.setVelocity(v)
@@ -314,11 +326,11 @@ class btr2022(object):
 
     def robotinoOdometry(self, data):
         # global self.btrOdometry
+        quat = quaternion_to_euler(Quaternion(data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w))
         self.btrOdometry = data
-
-    def robotinoVelocity(self, data):
-        # global btrVelocity
-        self.btrVelocity = data
+        self.btrOdometry.pose.pose.position.z = quat.z / math.pi * 180
+        # print(self.btrOdometry.pose.pose.position.z)
+        exit()
 
     def centerPoint(self, data):
         self.centerPoint = data
