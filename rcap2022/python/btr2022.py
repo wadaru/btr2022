@@ -187,9 +187,9 @@ class btr2022(object):
 
         targetAngle = nowAngle.pose.pose.position.z + turnAngle
         if (targetAngle > 180):
-            targetAngle -= 180
+            targetAngle -= 360
         if (targetAngle < -180):
-            targetAngle += 180
+            targetAngle += 360
 
         v = Pose2D()
         v.x = 0
