@@ -228,21 +228,19 @@ def startGrasping():
     for j in range(3):
         print(j)
         btrRobotino.w_goToOutputVelt()
-        getWork()
-        btrRobotino.w_goToWall(20)
+        btrRobotino.w_getWork()
         #
         if (robotNum != 2):
-            turnClockwise()
+            btrRobotino.w_turnClockwise()
         else:
-            turnCounterClockwise()
-        btrRobotino.goToInputVelt()
-        putWork()
-        btrRobotino.w_goToWall(20)
+            btrRobotino.w_turnCounterClockwise()
+        btrRobotino.w_goToInputVelt()
+        btrRobotino.w_putWork()
         print("turn")
         if (robotNum != 2):
-            turnCounterClockwise()
+            btrRobotino.w_turnCounterClockwise()
         else:
-            turnClockwise()
+            btrRobotino.w_turnClockwise()
         # finish?
 
 def initField():
@@ -559,24 +557,21 @@ if __name__ == '__main__':
     
     if (challenge == "test" and challengeFlag):
         challengeFlag = False
+        # btrRobotino.w_parallelMPS()
         btrRobotino.w_goToOutputVelt()
-        # turnClockwise()
-        # btrRobotino.goToInputVelt()
-        # btrRobotino.w_goToWall(20)
-        # turnCounterClockwise()
+        btrRobotino.w_turnClockwise()
+        btrRobotino.w_goToInputVelt()
+        btrRobotino.w_turnCounterClockwise()
         break
 
     if (challenge == "testMPS" and challengeFlag):
         if (True):
             btrRobotino.w_goToOutputVelt()
             btrRobotino.w_getWork()
-            btrRobotino.w_goToWall(20)
             btrRobotino.w_turnClockwise()
-            # btrRobotino.goToInputVelt()
-            # putWork()
-            # btrRobotino.w_goToWall(20)
-            # turnCounterClockwise()
-            # btrRobotino.w_goToWall(50)
+            btrRobotino.w_goToInputVelt()
+            btrRobotino.w_putWork()
+            btrRobotino.w_turnCounterClockwise()
         else:
             startGrasping()
         challengeFlag = False

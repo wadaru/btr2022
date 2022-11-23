@@ -13,6 +13,8 @@ from rcll_btr_msgs.srv import PictureInfo
 def initCamera():
     global cap
     cap = cv2.VideoCapture(6)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 def getPicture(data):
     global cap, bath_path, n, ext

@@ -33,14 +33,14 @@ min_mps_distance = 70
 turn_angle    = numpy.array([-999, -20, -10,   -5,   -2, -0.2, 0.1,     2,     5,    10,   20,  999])
 turn_velocity = numpy.array([ 1.0, 0.2, 0.1, 0.01, 0.01,    0,   0,- 0.01, -0.01,  -0.1, -0.2, -1.0])
 
-go_distance = numpy.array([-999, -50,   -20,  -15, -10, 10,   15,   20,  50, 999])
-go_velocity = numpy.array([-0.1,-0.1, -0.01,-0.01,   0,  0, 0.01, 0.01, 0.1, 0.1])
+go_distance = numpy.array([-9999, -50,   -20,  -15, -10, 10,   15,   20,  50, 9999])
+go_velocity = numpy.array([ -0.1,-0.1, -0.01,-0.01,   0,  0, 0.01, 0.01, 0.1,  0.1])
 
-go_distance_fast = numpy.array([-999, -20, -10,   -1, -0.9, 0,   1, 1.1,    5, 10,  20, 999])
-go_velocity_fast = numpy.array([-0.1,-0.1,-0.1,-0.01,    0, 0,0.01,0.01,0.015,0.1, 0.1, 0.1])
+go_distance_fast = numpy.array([-9999, -20, -10,   -1, -0.9, 0,   1, 1.1,    5, 10,  20, 9999])
+go_velocity_fast = numpy.array([ -0.1,-0.1,-0.1,-0.01,    0, 0,0.01,0.01,0.015,0.1, 0.1,  0.1])
 
-move_distance = numpy.array([-999, -500, -100,  -10, -9, 9,  10, 100, 500, 999])
-move_velocity = numpy.array([-0.1, -0.1,-0.05,-0.01,  0, 0,0.01,0.05, 0.1, 0.1])
+move_distance = numpy.array([-99999, -500, -100,  -10, -9, 9,  10, 100, 500, 99999])
+move_velocity = numpy.array([-  0.1, -0.1,-0.05,-0.01,  0, 0,0.01,0.05, 0.1,   0.1])
 
 def quaternion_to_euler(quaternion):
     """Convert Quaternion to Euler Angles
@@ -153,44 +153,16 @@ class btr2022(object):
             else:
                 v.y = velocity1(diff_y)
             v.theta = 0
-            if ((-0.001 < v.y) and (v.y < 0.001) and (-0.001 < v.x) and (v.x < 0.001)):
-                v.y = 0
-                v.x = 0
+            # if ((-0.001 < v.y) and (v.y < 0.001) and (-0.001 < v.x) and (v.x < 0.001)):
+            #     v.y = 0
+            #     v.x = 0
             # if (not(math.isnan(diff_y))) and (not(math.isnan(diff_x))):
             print(diff_x, v.x, diff_y, v.y)
             self.w_setVelocity(v)
             if (v.x == 0) and (v.y == 0):
                 break
 
-    def goToPoint(self, x, y, theta):
-        self.position = SetPosition()
-        self.pose = Pose2D()
-        rospy.wait_for_service('/rvw2/positionDriver')
-        self.setPosition = rospy.ServiceProxy('/rvw2/positionDriver', SetPosition)
-        self.position.header = Header()
-        self.pose.x = x
-        self.pose.y = y
-        self.pose.theta  = theta
-        self.position.pose = pose
-        print("send")
-        self.resp = self.setPosition(self.position.header, self.position.pose)
-        print("goToPoint")
-
-    def moveRobotino(self, x, y, theta):
-        self.position = SetPosition()
-        self.pose = Pose2D()
-        rospy.wait_for_service('/rvw2/move')
-        self.setPosition = rospy.ServiceProxy('/rvw2/move', SetPosition)
-        self.position.header = Header()
-        self.pose.x = x
-        self.pose.y = y
-        self.pose.theta  = theta
-        self.position.pose = pose
-        print("send")
-        self.resp = self.setPosition(self.position.header, self.position.pose)
-        print("goToPoint")
-
-    def goToInputVelt(self):    # 375mm from left side(= 25 + 50*7)
+    def w_goToInputVelt(self):    # 375mm from left side(= 25 + 50*7)
         # self.w_goToWall(min_mps_distance)
         self.w_goToMPSCenter()
         self.w_robotinoMove(0,-25)
@@ -214,6 +186,10 @@ class btr2022(object):
                 break
 
         targetAngle = nowAngle.pose.pose.position.z + turnAngle
+        if (targetAngle > 180):
+            targetAngle -= 180
+        if (targetAngle < -180):
+            targetAngle += 180
 
         v = Pose2D()
         v.x = 0
@@ -275,8 +251,8 @@ class btr2022(object):
                 v.y = velocityY(dist)
             v.theta = 0
             print("MPSCenter:", dist, v.y)
-            if ((-0.001 < v.y) and (v.y < 0.001)):
-                v.y = 0
+            # if ((-0.001 < v.y) and (v.y < 0.001)):
+            #     v.y = 0
             # if (not(math.isnan(dist))):
             self.w_setVelocity(v)
             if (v.y == 0):
@@ -298,8 +274,8 @@ class btr2022(object):
             v.y = 0
             v.theta = 0
             print("Wall ", distance, "cm:", sensor, v.x)
-            if ((-0.001 < v.x) and (v.x < 0.001)):
-                v.x = 0
+            # if ((-0.001 < v.x) and (v.x < 0.001)):
+            #     v.x = 0
             # if (not(math.isnan(sensor))):
             self.w_setVelocity(v)
             if (v.x == 0):
@@ -311,10 +287,18 @@ class btr2022(object):
         velocity1 = interpolate.interp1d(turn_angle, turn_velocity)
 
         while True:
-            angle1 = MPS_angle(self.leftPoint, self.rightPoint)
-            angle2 = MPS_angle(self.leftPoint, self.centerPoint)
-            angle3 = MPS_angle(self.centerPoint, self.rightPoint)
+            angle1 = 90
+            angle2 = 90
+            angle3 = 90
+            while ((angle1 == 90) or (angle2 == 90) or (angle3 == 90)):
+                angle1 = MPS_angle(self.leftPoint, self.rightPoint)
+                angle2 = MPS_angle(self.leftPoint, self.centerPoint)
+                angle3 = MPS_angle(self.centerPoint, self.rightPoint)
+                print(angle1)
             angle = (angle1 + angle2 + angle3) / 3.0
+            # angle = (angle2 + angle3) / 2
+            # angle = angle1
+            print(angle, angle1, angle2, angle3)
             #
             v = Pose2D()
             v.x = 0
@@ -324,35 +308,43 @@ class btr2022(object):
             v.theta = velocity1(angle - 90)  
 
             print("parallelMPS:", angle, v.theta)
-            if ((-1 < v.theta) and (v.theta < 1)):
-                v.theta = 0
+            # if ((-0.01 < v.theta) and (v.theta < 0.01)):
+            #     v.theta = 0
             # if (not(math.isnan(angle))):
             self.w_setVelocity(v)
             if (v.theta == 0):
                 break
 
-    def turnClockwise(self):
-        rospy.wait_for_service('/rvw2/turnClockwiseMPS')
-        self.turnClockwise = self.rospy.ServiceProxy('/rvw2/turnClockwiseMPS', Empty)
-        print("turnClockwiseMPS")
-        self.resp = self.turnClockwise()
+    def w_turnClockwise(self):
+        self.w_goToWall(20)
+        self.w_robotinoTurn(90)
+        self.w_robotinoMove(700, 0)
+        self.w_robotinoTurn(-90)
+        self.w_robotinoMove(1200, 0)
+        self.w_robotinoTurn(-90)
+        self.w_robotinoMove(700, 0)
+        self.w_robotinoTurn(-90)
 
-    def turnCounterClockwise(self):
-        rospy.wait_for_service('/rvw2/turnCounterClockwiseMPS')
-        self.turnCounterClockwise = self.rospy.ServiceProxy('/rvw2/turnCounterClockwiseMPS', Empty)
-        print("turnCounterClockwiseMPS")
-        self.resp = self.turnCounterClockwise()
-    
+    def w_turnCounterClockwise(self):
+        self.w_goToWall(20)
+        self.w_robotinoTurn(-90)
+        self.w_robotinoMove(700, 0)
+        self.w_robotinoTurn(90)
+        self.w_robotinoMove(1200, 0)
+        self.w_robotinoTurn(90)
+        self.w_robotinoMove(700, 0)
+        self.w_robotinoTurn(90)
+
     def w_getWork(self):
         rospy.wait_for_service('/btr/move_g')
-        self.getWork = self.rospy.ServiceProxy('/btr/move_g', Empty)
+        self.getWork = rospy.ServiceProxy('/btr/move_g', Empty)
         print("getWork")
         self.resp = self.getWork()
         print("finish")
 
     def w_putWork(self):
         rospy.wait_for_service('btr/move_r')
-        self.putWork = self.rospy.ServiceProxy('/btr/move_r', Empty)
+        self.putWork = rospy.ServiceProxy('/btr/move_r', Empty)
         print("putWork")
         self.resp = self.putWork()
         print("finish")
@@ -396,9 +388,9 @@ if __name__ == '__main__':
     if (challenge == "test" and challengeFlag):
         agent.run()
         # agent.w_goToOutputVelt()
-        turnClockwise()
-        goToInputVelt()
-        # turnCounterClockwise()
+        w_turnClockwise()
+        w_goToInputVelt()
+        # w_turnCounterClockwise()
         challengeFlag = False
 
     agent.rate.sleep()
