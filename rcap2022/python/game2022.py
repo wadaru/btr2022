@@ -1,15 +1,4 @@
 #!/usr/bin/python
-TEAMNAME = "BabyTigers"
-
-FIELDMINX = -5
-FIELDMAXX = -1
-FIELDMINY =  1
-FIELDMAXY =  5
-FIELDSIZEX = (FIELDMAXX - FIELDMINX) + 1
-FIELDSIZEY = (FIELDMAXY - FIELDMINY) + 1
-FIELDSIZE = FIELDSIZEX * FIELDSIZEY
-MAXSTEP = 999
-
 import struct
 import time
 import math
@@ -17,15 +6,18 @@ import sys
 import rospy
 # import robotino2022
 import btr2022
-from geometry_msgs.msg import Pose, Pose2D, PoseStamped, PointStamped, Point, Quaternion
+import quaternion
+import tf
+import rcll_ros_msgs
+import rcll_btr_msgs
+from geometry_msgs.msg import Pose, Pose2D, PoseStamped, PointStamped, Point, \
+                              Quaternion, Vector3
 from socket import socket, AF_INET, SOCK_DGRAM
 from std_msgs.msg import Int8, Int16, UInt32, String, \
                          Float32, Float32MultiArray, \
                          Bool, Header
 from std_srvs.srv import SetBool, SetBoolResponse, Empty, EmptyResponse
 from nav_msgs.msg import Odometry
-import rcll_ros_msgs
-import rcll_btr_msgs
 from rcll_btr_msgs.srv import SetOdometry, SetPosition, SetVelocity, \
                               SetDistance
 from rcll_ros_msgs.msg import BeaconSignal, ExplorationInfo, \
@@ -37,6 +29,17 @@ from rcll_ros_msgs.msg import BeaconSignal, ExplorationInfo, \
                               NavigationRoutes, Route
 from rcll_ros_msgs.srv import SendBeaconSignal, SendMachineReport, \
                               SendMachineReportBTR, SendPrepareMachine
+
+TEAMNAME = "BabyTigers"
+
+FIELDMINX = -5
+FIELDMAXX = -1
+FIELDMINY =  1
+FIELDMAXY =  5
+FIELDSIZEX = (FIELDMAXX - FIELDMINX) + 1
+FIELDSIZEY = (FIELDMAXY - FIELDMINY) + 1
+FIELDSIZE = FIELDSIZEX * FIELDSIZEY
+MAXSTEP = 999
 
 zoneX = { "S11" :  -500, "S21" : -1500, "S31" : -2500, "S41" : -3500, "S51" : -4500,
           "S12" :  -500, "S22" : -1500, "S32" : -2500, "S42" : -3500, "S52" : -4500,
@@ -55,77 +58,14 @@ outputX = {  0: inputX[180],  45: inputX[225],  90: inputX[270], 135: inputX[315
 outputY = {  0: inputY[180],  45: inputY[225],  90: inputY[270], 135: inputY[315],
            180: inputY[  0], 225: inputY[ 45], 270: inputY[ 90], 315: inputY[135]}
 
-def goToPoint(x, y, theta):
-    position = SetPosition()
-    pose = Pose2D()
-    rospy.wait_for_service('/rvw2/positionDriver')
-    setPosition = rospy.ServiceProxy('/rvw2/positionDriver', SetPosition)
-    position.header = Header()
-    pose.x = x
-    pose.y = y
-    pose.theta  = theta
-    position.pose = pose
-    # print("send")
-    resp = setPosition(position.header, position.pose)
-    print("goToPoint")
+def quaternion_to_euler(quaternion):
+    """Convert Quaternion to Euler Angles
 
-def moveRobotino(x, y, theta):
-    position = SetPosition()
-    pose = Pose2D()
-    rospy.wait_for_service('/rvw2/move')
-    setPosition = rospy.ServiceProxy('/rvw2/move', SetPosition)
-    position.header = Header()
-    pose.x = x
-    pose.y = y
-    pose.theta  = theta
-    position.pose = pose
-    # print("send")
-    resp = setPosition(position.header, position.pose)
-    print("move Robotino")
-
-def goToInputVelt(): # original position is 355 (= 5 + 50*7)
-    # goToMPSCenter(335 + 63) # for LRF
-    goToMPSCenter(355 + 58)
-
-def goToOutputVelt(): # original position is 305 (= 5 + 50*6)
-    # goToMPSCenter(321 -15 +50 -5) # for LRF
-    goToMPSCenter(305 + 16 + 40)
-
-def goToMPSCenter(distance):
-    setDistance = SetDistance()
-    rospy.wait_for_service('/rvw2/goToMPSCenter')
-    goToMPSCenter = rospy.ServiceProxy('/rvw2/goToMPSCenter', SetDistance)
-    setDistance.header = Header()
-    setDistance.distance = Int16(distance)
-    print("goToMPSCenter", distance)
-    resp = goToMPSCenter(setDistance.header, setDistance.distance)
-    print("reached")
-
-def turnClockwise():
-    rospy.wait_for_service('/rvw2/turnClockwiseMPS')
-    turnClockwise = rospy.ServiceProxy('/rvw2/turnClockwiseMPS', Empty)
-    print("turnClockwiseMPS")
-    resp = turnClockwise()
-
-def turnCounterClockwise():
-    rospy.wait_for_service('/rvw2/turnCounterClockwiseMPS')
-    turnCounterClockwise = rospy.ServiceProxy('/rvw2/turnCounterClockwiseMPS', Empty)
-    print("turnCounterClockwiseMPS")
-    resp = turnCounterClockwise()
-    
-def getWork():
-    rospy.wait_for_service('/btr/move_g')
-    getWork = rospy.ServiceProxy('/btr/move_g', Empty)
-    print("getWork")
-    resp = getWork()
-    print("finish")
-
-def putWork():
-    rospy.wait_for_service('btr/move_r')
-    putWork = rospy.ServiceProxy('/btr/move_r', Empty)
-    print("putWork")
-    resp = putWork()
-    print("finish")
+    quarternion: geometry_msgs/Quaternion
+    euler: geometry_msgs/Vector3
+    """
+    e = tf.transformations.euler_from_quaternion((quaternion.x, quaternion.y, quaternion.z, quaternion.w))
+    return Vector3(x=e[0], y=e[1], z=e[2])
 
 def beaconSignal(data):
     global refboxBeaconSignal
@@ -186,28 +126,6 @@ def sendBeacon():
     beacon = SendBeaconSignal()
     beacon.header = Header()
 
-    '''
-    # for pointStamped()
-    beacon.point = PointStamped()
-    
-    # pose.position = point
-    # set Pose
-    beacon.point.point.x = btrOdometry.pose.pose.position.x
-    beacon.point.point.y = btrOdometry.pose.pose.position.y
-    beacon.point.point.z = math.asin(btrOdometry.pose.pose.orientation.x) # x = math.cos(theta / 2.0), y = math.sin(theta / 2.0)
-    if (btrOdometry.pose.pose.orientation.y < 0):
-      beacon.point.point.z = -beacon.point.point.z
-    print("odometry: ", beacon.point)
-    # set quaternion
-    # theta = math.radians(float(udp.view3Recv[4]) / 10)
-    beacon.header.seq = 1
-    beacon.header.stamp = rospy.Time.now()
-    beacon.header.frame_id = TEAMNAME
-    beacon.point.header.seq = 1
-    beacon.point.header.stamp = rospy.Time.now()
-    beacon.point.header.frame_id = "robot1"
-    # poseStamped.pose = pose
-    '''
     # for poseStamped()
     beacon.pose = PoseStamped()
     beacon.pose.pose.position.x = btrOdometry.pose.pose.position.x
@@ -293,14 +211,14 @@ def sendPrepareMachine(data):
 
 def robotinoOdometry(data):
     global btrOdometry, btrBeaconCounter
+    quat = quaternion_to_euler(Quaternion(data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w))
     btrOdometry = data
+    btrOdometry.pose.pose.position.z = quat.z / math.pi * 180
+    # btrOdometry = data
     btrBeaconCounter +=1
     if (btrBeaconCounter > 5):
       sendBeacon()
-
-def robotinoVelocity(data):
-    global btrVelocity
-    btrVelocity = data
+      btrBeaconCounter = 0
 
 # 
 # challenge program
@@ -601,8 +519,7 @@ if __name__ == '__main__':
   rospy.Subscriber("rcll/machine_report_info", MachineReportInfo, machineReportInfo)
   rospy.Subscriber("rcll/order_info", OrderInfo, orderInfo)
   rospy.Subscriber("rcll/ring_info", RingInfo, ringInfo)
-  rospy.Subscriber("robotino/odometry", Odometry, robotinoOdometry)
-  rospy.Subscriber("robotino/getVelocity", Float32MultiArray, robotinoVelocity)
+  rospy.Subscriber("/odom", Odometry, robotinoOdometry)
   rospy.Subscriber("rcll/routes_info", NavigationRoutes, navigationRoutes)
   rate = rospy.Rate(10)
 
@@ -647,7 +564,6 @@ if __name__ == '__main__':
         # btrRobotino.goToInputVelt()
         # btrRobotino.goToWall(20)
         # turnCounterClockwise()
-        break
 
     if (challenge == "testMPS" and challengeFlag):
         if (True):
@@ -786,7 +702,6 @@ if __name__ == '__main__':
             prepareMachine.ds_order_id = 1 # ORDER ID
             prepareMachine.wait = True
             sendPrepareMachine(prepareMachine)
-
 
     rate.sleep()
 
