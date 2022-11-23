@@ -227,9 +227,9 @@ def robotinoOdometry(data):
 def startGrasping():
     for j in range(3):
         print(j)
-        btrRobotino.goToOutputVelt()
+        btrRobotino.w_goToOutputVelt()
         getWork()
-        btrRobotino.goToWall(20)
+        btrRobotino.w_goToWall(20)
         #
         if (robotNum != 2):
             turnClockwise()
@@ -237,7 +237,7 @@ def startGrasping():
             turnCounterClockwise()
         btrRobotino.goToInputVelt()
         putWork()
-        btrRobotino.goToWall(20)
+        btrRobotino.w_goToWall(20)
         print("turn")
         if (robotNum != 2):
             turnCounterClockwise()
@@ -548,7 +548,7 @@ if __name__ == '__main__':
       # goToPoint(-800, -1500, 90)
       goToPoint(pose.x, pose.y, pose.theta)
       exit()
-  btrRobotino.resetOdometry(pose)
+  btrRobotino.w_resetOdometry(pose)
 
   print(challenge)
   challengeFlag = True
@@ -559,23 +559,24 @@ if __name__ == '__main__':
     
     if (challenge == "test" and challengeFlag):
         challengeFlag = False
-        btrRobotino.goToOutputVelt()
+        btrRobotino.w_goToOutputVelt()
         # turnClockwise()
         # btrRobotino.goToInputVelt()
-        # btrRobotino.goToWall(20)
+        # btrRobotino.w_goToWall(20)
         # turnCounterClockwise()
+        break
 
     if (challenge == "testMPS" and challengeFlag):
         if (True):
-            btrRobotino.goToOutputVelt()
-            # getWork()
-            # btrRobotino.goToWall(20)
-            # turnClockwise()
+            btrRobotino.w_goToOutputVelt()
+            btrRobotino.w_getWork()
+            btrRobotino.w_goToWall(20)
+            btrRobotino.w_turnClockwise()
             # btrRobotino.goToInputVelt()
             # putWork()
-            # btrRobotino.goToWall(20)
+            # btrRobotino.w_goToWall(20)
             # turnCounterClockwise()
-            # btrRobotino.goToWall(50)
+            # btrRobotino.w_goToWall(50)
         else:
             startGrasping()
         challengeFlag = False
@@ -620,25 +621,25 @@ if __name__ == '__main__':
             theta = MPSAngle
         
         goToPoint(MPSx, MPSy, theta)
-        goToMPSCenter(350)
+        btrRobotino.w_goToMPSCenter(350)
         if (firstSide == "input"):
             time.sleep(10)
 
-        btrRobotino.goToWall(20)
+        btrRobotino.w_goToWall(20)
         if (turn == "clock"):
             turnClockwise()
         else:
             turnCounterClockwise()
-        goToMPSCenter(350)
+        btrRobotino.w_goToMPSCenter(350)
         time.sleep(10)
         
-        btrRobotino.goToWall(20)
+        btrRobotino.w_goToWall(20)
         if (turn == "clock"):
             turnCounterClockwise()
         else:
             turnClockwise()
         if (firstSide == "output"):
-            goToMPSCenter(350) 
+            btrRobotino.w_goToMPSCenter(350) 
             time.sleep(10)
         
         theta = 270
