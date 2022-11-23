@@ -559,8 +559,10 @@ if __name__ == '__main__':
         challengeFlag = False
         # btrRobotino.w_parallelMPS()
         btrRobotino.w_goToOutputVelt()
+        btrRobotino.w_getWork()
         btrRobotino.w_turnClockwise()
         btrRobotino.w_goToInputVelt()
+        btrRobotino.w_putWork()
         btrRobotino.w_turnCounterClockwise()
         break
 

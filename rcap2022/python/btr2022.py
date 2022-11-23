@@ -196,10 +196,10 @@ class btr2022(object):
         v.y = 0
         while True:
             diff = (targetAngle - self.btrOdometry.pose.pose.position.z)
-            if (diff > 180):
-                diff -= 180
-            if (diff < -180):
-                diff += 180
+            if (diff > 360):
+                diff -= 360
+            if (diff < -360):
+                diff += 360
             v.theta = -velocity1(diff)
             self.w_setVelocity(v)
             print(diff, v)
@@ -240,7 +240,7 @@ class btr2022(object):
     def w_goToMPSCenterLRF(self):
         global go_distance, go_velocity
                 
-        velocityY = interpolate.interp1d(go_distance, go_velocity)
+        velocityY = interpolate.interp1d(move_distance, move_velocity)
         while True:
             dist = self.leftPoint.y * 1000 + self.rightPoint.y * 1000
             v = Pose2D()
