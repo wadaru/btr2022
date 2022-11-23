@@ -213,7 +213,8 @@ def robotinoOdometry(data):
     global btrOdometry, btrBeaconCounter
     quat = quaternion_to_euler(Quaternion(data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w))
     btrOdometry = data
-    btrOdometry.pose.pose.position.z = quat.z / math.pi * 180
+    ##btrOdometry.pose.pose.position.z = quat.z / math.pi * 180
+    btrOdometry.pose.pose.position.z = btrOdometry.pose.pose.position.z # / math.pi * 180
     # btrOdometry = data
     btrBeaconCounter +=1
     if (btrBeaconCounter > 5):
@@ -557,7 +558,6 @@ if __name__ == '__main__':
     
     if (challenge == "test" and challengeFlag):
         challengeFlag = False
-        # btrRobotino.w_parallelMPS()
         btrRobotino.w_goToOutputVelt()
         btrRobotino.w_getWork()
         btrRobotino.w_turnClockwise()

@@ -135,9 +135,9 @@ class btr2022(object):
                 break
 
         theta = nowPoint.pose.pose.position.z / 180 * math.pi
+        print("theta", theta, nowPoint.pose.pose.position.z)
         target_x = x * math.cos(theta) - y * math.sin(theta) + nowPoint.pose.pose.position.x 
         target_y = x * math.sin(theta) + y * math.cos(theta) + nowPoint.pose.pose.position.y
-
         while True:
             diff_x1 = (target_x - self.btrOdometry.pose.pose.position.x)
             diff_y1 = (target_y - self.btrOdometry.pose.pose.position.y)
@@ -165,7 +165,7 @@ class btr2022(object):
     def w_goToInputVelt(self):    # 375mm from left side(= 25 + 50*7)
         # self.w_goToWall(min_mps_distance)
         self.w_goToMPSCenter()
-        self.w_robotinoMove(0,-25)
+        self.w_robotinoMove(0, 25 + 55)
         self.w_goToWall(15)
 
     def w_goToOutputVelt(self):   # 325mm from left side (= 25 + 50*6)
@@ -355,7 +355,8 @@ class btr2022(object):
         self.btrOdometry = data
         self.btrOdometry.pose.pose.position.x = data.pose.pose.position.x * 1000
         self.btrOdometry.pose.pose.position.y = data.pose.pose.position.y * 1000
-        self.btrOdometry.pose.pose.position.z = quat.z / math.pi * 180
+        # self.btrOdometry.pose.pose.position.z = quat.z / math.pi * 180
+        self.btrOdometry.pose.pose.position.z = data.pose.pose.position.z / math.pi * 180
         # print(self.btrOdometry)
 
     def centerPoint(self, data):
